@@ -1,7 +1,7 @@
 Package: GenoTriplo
 Type: Package
 Title: Genotyping Triploids (or Diploids) from Luminescence Data
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: 
   c(person(given = "Julien",
            family = "Roche",
@@ -36,7 +36,7 @@ Imports: cowplot, doParallel, dplyr, DT, foreach, ggplot2, htmltools,
         parallel, processx, rlang, Rmixmod, shiny, shinythemes, tidyr
 Depends: R (>= 3.5.0), shinyBS
 NeedsCompilation: no
-Packaged: 2023-06-29 11:28:41 UTC; Proprietaire
+Packaged: 2023-09-06 08:13:38 UTC; jlroche
 Author: Julien Roche [aut, cre],
   Florence Phocas [aut],
   Mathieu Besson [aut],
@@ -46,4 +46,4 @@ Author: Julien Roche [aut, cre],
   Pierrick Haffray [aut]
 Maintainer: Julien Roche <jjm.roche@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-06-30 19:10:02 UTC
+Date/Publication: 2023-09-06 08:50:10 UTC

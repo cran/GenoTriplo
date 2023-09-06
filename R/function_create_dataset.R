@@ -1,6 +1,8 @@
 #' Create dataset in appropriate format
 #'
-#' @param data dataset created by bash code
+#' Create SigStren and Contrast variables from luminescence values of probeset A and B of each markers and return a dataframe to be used for clustering or save the result if a saving name is given
+#'
+#' @param data dataframe with probeset_id as first variable (markername finishing by -A or -B depending on the probeset) and individuals as variable with luminescence values for each probeset (dataset created by bash code by shiny app)
 #' @param save_name saving name
 #' @import dplyr
 #' @importFrom tidyr pivot_wider pivot_longer
@@ -9,10 +11,10 @@
 #'
 #' @return number of individuals and markers (automatically save the dataset)
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 
-Create_Dataset = function(data,save_name){
+Create_Dataset = function(data,save_name=NULL){
+  if (is.null(data$probeset_id)){stop("Must have 'probeset_id' as first variable !")}
   dta = tidyr::pivot_longer(data = data,cols = 2:dim(data)[2]) # on passe les SampleName en tant que variable unique (tableau moins large mais plus long : plus que 3 colonnes)
   rm(list='data')
   gc()
@@ -46,9 +48,13 @@ Create_Dataset = function(data,save_name){
   if (!dir.exists("./output_create")){
     dir.create("./output_create")
   }
-  save(data_clustering,file=paste0("./output_create/",save_name,"_to_clust.Rdata"))
-  n_ind=length(unique(data_clustering$SampleName))
-  n_marker=length(unique(data_clustering$MarkerName))
-  return(c(n_ind,n_marker))
+  if (!is.null(save_name)){
+    save(data_clustering,file=paste0("./output_create/",save_name,"_to_clust.Rdata"))
+    n_ind=length(unique(data_clustering$SampleName))
+    n_marker=length(unique(data_clustering$MarkerName))
+    return(c(n_ind,n_marker))
+  } else {
+    return(data_clustering)
+  }
 }
 

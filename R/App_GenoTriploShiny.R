@@ -493,6 +493,9 @@ launch_GenoShiny = function(){
       }
       if (! is.null(input$txt_file) & input$save_name1 != ""){
         if (!dir.exists("./output_create")){dir.create("./output_create")}
+
+        has_cmd = TRUE
+
         os = Sys.info()["sysname"] # Operating system -> to check after if it is Windows or else
         t0=Sys.time()
         date_time = Sys.time()
@@ -512,31 +515,64 @@ launch_GenoShiny = function(){
         } else {
           run(paste0("sh ./Extraction.sh ",path),wd=sh_path)
         }
+
+        if (!file.exists("./tmp.txt")){
+          has_cmd = FALSE
+          write(x = "Running from R as bash command couldn't run (see what to do to run bash command on Windows if wanted)",file = path_log,append = TRUE)
+          raw_data = read.table(file = path,header = TRUE,comment.char = "#",check.names = FALSE)
+          colnames(raw_data) = gsub(pattern = "_[A-Z][0-9].CEL",replacement = "",x = colnames(raw_data))
+          colnames(raw_data) = gsub(pattern = "_[A-Z][0-9][0-9].CEL",replacement = "",x = colnames(raw_data))
+        }
+
         if (!is.null(input$marker_file)){
           write(x = paste0("Selecting marker from : ",input$marker_file$name),file = path_log,append = TRUE)
           path=input$marker_file$datapath
-          if (os=="Windows"){
-            run(command = "cmd.exe",c("/c","call","Select_marker.sh",path),wd=sh_path)
+          if (has_cmd){
+            if (os=="Windows"){
+              run(command = "cmd.exe",c("/c","call","Select_marker.sh",path),wd=sh_path)
+            } else {
+              run(paste0("sh ./Select_marker.sh ",path),wd=sh_path)
+            }
           } else {
-            run(paste0("sh ./Select_marker.sh ",path),wd=sh_path)
+            marker = read.table(file = path,header = FALSE)
+            colnames(marker)='MarkerName'
+            MarkerName = gsub(pattern = "-A$",replacement = "",x = raw_data[,1])
+            MarkerName = gsub(pattern = "-B$",replacement = "",x = MarkerName)
+            to_keep = which(MarkerName %in% marker$MarkerName)
+            raw_data = raw_data[to_keep,]
           }
         }
+
         if (!is.null(input$indiv_file)){
           write(x = paste0("Selecting individuals from : ",input$indiv_file$name),file = path_log,append = TRUE)
           path=input$indiv_file$datapath
-          if (os=="Windows"){
-            run(command = "cmd.exe",c("/c","call","Select_indiv.sh",path),wd=sh_path)
+          if (has_cmd){
+            if (os=="Windows"){
+              run(command = "cmd.exe",c("/c","call","Select_indiv.sh",path),wd=sh_path)
+            } else {
+              run(paste0("sh ./Select_indiv.sh ",path),wd=sh_path)
+            }
           } else {
-            run(paste0("sh ./Select_indiv.sh ",path),wd=sh_path)
+            indiv = read.table(file = path,header = FALSE)
+            colnames(indiv)='SampleName'
+            indiv$SampleName = gsub(pattern = "_[A-Z][0-9].CEL",replacement = "",x = indiv$SampleName)
+            indiv$SampleName = gsub(pattern = "_[A-Z][0-9][0-9].CEL",replacement = "",x = indiv$SampleName)
+            to_keep = which(colnames(raw_data) %in% indiv$SampleName)
+            raw_data = raw_data[,c(1,to_keep)]
           }
         }
-        write(x = paste0("Loading dataset... Time : ",Sys.time()),file = path_log,append = TRUE)
-        message(paste0("Loading dataset... Time : ",Sys.time()))
-        if (getRversion()<'4.2.0'){
-          memory.limit(size = 40000) # gestion de lespace memoire automatique a partir de la version 4.2.0
+
+        if (has_cmd){
+          write(x = paste0("Loading dataset... Time : ",Sys.time()),file = path_log,append = TRUE)
+          message(paste0("Loading dataset... Time : ",Sys.time()))
+          if (getRversion()<'4.2.0'){
+            memory.limit(size = 40000) # gestion de lespace memoire automatique a partir de la version 4.2.0
+          }
+          dta0=read.delim(file = paste0(sh_path,"/tmp.txt"),header = TRUE,sep="\t")
+          file.remove(paste0(sh_path,"/tmp.txt"))
+        } else {
+          dta0=raw_data
         }
-        dta0=read.delim(file = paste0(sh_path,"/tmp.txt"),header = TRUE,sep="\t")
-        file.remove(paste0(sh_path,"/tmp.txt"))
 
         write(x = paste0("Start formating... Time : ",Sys.time()),file = path_log,append = TRUE)
         message(paste0("Start formating... Time : ",Sys.time()))
@@ -568,7 +604,7 @@ launch_GenoShiny = function(){
         load(file = input$data_file_clust$datapath)
         l_marker = unique(data_clustering$MarkerName)
         nb_marker = length(l_marker)
-        taille_batch_marker = 10000
+        taille_batch_marker = 1000*as.numeric(input$n_core1)
         if (nb_marker>(1.5*taille_batch_marker)){
           write(x = paste0("The dataset is separated in smaller dataset to optimize running time !"),file = path_log,append = T)
           write(x = paste0("Cut dataset : ",input$data_file_clust$name," - Time : ",Sys.time()),file = path_log,append = T)
@@ -748,7 +784,7 @@ launch_GenoShiny = function(){
         }
         l_marker = unique(data_clustering$MarkerName)
         nb_marker = length(l_marker)
-        taille_batch_marker = 10000
+        taille_batch_marker = 1000*as.numeric(input$n_core2)
         if (nb_marker>(1.5*taille_batch_marker)){
           message(paste0("Cut dataset... Time : ",Sys.time()))
           write(x = paste0("The dataset is separated in smaller dataset to optimize running time !"),file = path_log,append = T)
