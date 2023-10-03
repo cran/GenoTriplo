@@ -48,7 +48,7 @@ GenoAssign_pop_same = function(resClustering,SampleName,NbClustMax,SeuilNoCall,S
       if (verbose){print(paste0("Marker : ",k))}
       if (! is.character(resClustering[[k]])){
         # On verifie le nombre de cluster restant apres avoir enlever les potentiels individus trop eloigne et les groupes trop etendus
-        val_clust=unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])
+        val_clust=as.numeric(as.character(unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])))
         n_clust_restant = length(val_clust)
         if (n_clust_restant==3){ # si nombre max (diploide) : assignation des genotype dans lordre
           ordre = order(resClustering[[k]]@parameters@mean[,1])
@@ -125,7 +125,7 @@ GenoAssign_pop_same = function(resClustering,SampleName,NbClustMax,SeuilNoCall,S
 
       if (verbose){print(paste0("Marker : ",k))}
       if (! is.character(resClustering[[k]])){
-        val_clust = unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])
+        val_clust = as.numeric(as.character(unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])))
         n_clust_restant = length(val_clust)
         if (n_clust_restant==4){ # si 4 clusters : dans lordre
           ordre = order(resClustering[[k]]@parameters@mean[,1])

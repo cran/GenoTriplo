@@ -49,7 +49,7 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
 
       if (verbose){print(paste0("Marker : ",k))}
       if (! is.character(resClustering[[k]])){
-        val_clust = unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))]) # stockage des numeros de cluster restant
+        val_clust = as.numeric(as.character(unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))]))) # stockage des numeros de cluster restant
         n_clust_restant = length(val_clust) # calcul du nombre de cluster restant
         if (n_clust_restant==3){ # on regarde si il y a 3 clusters (le nombre maximum en diploide)
           # Les genotypes sont ordonnes pour que le bon numero leur soient assigne
@@ -102,7 +102,7 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
       if (verbose){print(paste0("Marker : ",k))}
       if (! is.character(resClustering[[k]])){ # Verification que le clustering a bien fonctionne pour ce marker
         # Comme plus haut, on verifie le nombre de cluster restant apres avoir enlever les potentiels individus trop eloigne et les groupes trop etendus
-        val_clust = unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])
+        val_clust = as.numeric(as.character(unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])))
         n_clust_restant = length(val_clust)
         if (n_clust_restant==1){ # si il reste plus quun groupe
           m1=resClustering[[k]]@parameters@mean[val_clust[1],1] # stockage de son centre
@@ -189,7 +189,7 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
                        SeuilSD=SeuilSD)
       resClustering[[k]]@partition=as.factor(verif[[1]])
       # print(k)
-      val_clust = unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])
+      val_clust = as.numeric(as.character(unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])))
       n_clust_restant = length(val_clust)
       if (n_clust_restant==4){
         ordre = order(resClustering[[k]]@parameters@mean[,1])
@@ -240,7 +240,7 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
     }
     for (k in MarkerName[!MarkerName %in% c(list_max_clust,list_max_clust_false)]){ # mtn quon a les moyennes, on peut assigner le reste
       # print(k)
-      val_clust = unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])
+      val_clust = as.numeric(as.character(unique(resClustering[[k]]@partition[which(!is.na(resClustering[[k]]@partition))])))
       n_clust_restant = length(val_clust)
       if (n_clust_restant==1){
         m1=resClustering[[k]]@parameters@mean[val_clust[1],1]

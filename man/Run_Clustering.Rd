@@ -9,7 +9,7 @@ Run_Clustering(
   ploidy,
   save_n = "",
   n_iter = 5,
-  D_min = 0.22,
+  D_min = 0.28,
   n_core = 1,
   path_log = ""
 )

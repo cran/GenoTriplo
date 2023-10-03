@@ -31,7 +31,7 @@
 #'
 #'
 
-Run_Clustering = function(data_clustering,ploidy,save_n='',n_iter=5,D_min=0.22,n_core=1,path_log=''){
+Run_Clustering = function(data_clustering,ploidy,save_n='',n_iter=5,D_min=0.28,n_core=1,path_log=''){
 
   if (!is.numeric(ploidy)){
     stop("ploidy must be a numeric value !")
