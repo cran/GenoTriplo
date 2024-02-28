@@ -572,6 +572,8 @@ launch_GenoShiny = function(){
           file.remove(paste0(sh_path,"/tmp.txt"))
         } else {
           dta0=raw_data
+          rm(raw_data)
+          gc()
         }
 
         write(x = paste0("Start formating... Time : ",Sys.time()),file = path_log,append = TRUE)
@@ -864,11 +866,11 @@ launch_GenoShiny = function(){
             if (!is.null(fin_geno$corres_ATCG)){
               atcg2 = read.table(file = paste0(dirpath,input$save_name3,"_",k,"_genoATCG.csv"),header = TRUE,sep = ";",check.names = FALSE)
               file.remove(paste0(dirpath,input$save_name3,"_",k,"_genoATCG.csv"))
-              atcg = cbind(atcg,atcg2)
+              atcg = cbind(atcg,atcg2[,-1]) #remove SampleName column
             } else {
               ab2 = read.table(file = paste0(dirpath,input$save_name3,"_",k,"_genoAB.csv"),header = TRUE,sep = ";",check.names = FALSE)
               file.remove(paste0(dirpath,input$save_name3,"_",k,"_genoAB.csv"))
-              ab = cbind(ab,ab2)
+              ab = cbind(ab,ab2[,-1]) #remove SampleName column
             }
             gc()
           }

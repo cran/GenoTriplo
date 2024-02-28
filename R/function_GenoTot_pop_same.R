@@ -90,9 +90,9 @@ GenoAssign_pop_same = function(resClustering,SampleName,NbClustMax,SeuilNoCall,S
 
         # On test si ce marker sera garde ou non
         ToKeep = keepMarkerdiplo(marker = k,
-                              genotypePop = resGenoAssign[k,],
-                              data = Dataset[Dataset$MarkerName==k,],
-                              cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
+                                 genotypePop = resGenoAssign[k,],
+                                 data = Dataset[Dataset$MarkerName==k,],
+                                 cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
         df_classif[k,]=ToKeep
         if (!is.na(df_classif[k,"Message"])){
           if (df_classif[k,"Message"]=='CR' & verif[[2]]=="SD_gp"){
@@ -139,25 +139,71 @@ GenoAssign_pop_same = function(resClustering,SampleName,NbClustMax,SeuilNoCall,S
           m1=resClustering[[k]]@parameters@mean[val_clust[1],1]
           m2=resClustering[[k]]@parameters@mean[val_clust[2],1]
           m3=resClustering[[k]]@parameters@mean[val_clust[3],1]
+          prop1=sum(resClustering[[k]]@partition==val_clust[1],na.rm = TRUE)
+          prop2=sum(resClustering[[k]]@partition==val_clust[2],na.rm = TRUE)
+          prop3=sum(resClustering[[k]]@partition==val_clust[3],na.rm = TRUE)
           m=c(m1,m2,m3)
+          prop=c(prop1,prop2,prop3)
           i=which(abs(m)==max(abs(m)))
+
+          # i_min=which(abs(m)==min(abs(m))) # marche pas
+
+          inverse=FALSE
+
           if (m[i]>0){
+
+            i_min = which(m == min(m))
+            if (prop[i_min]>2*prop[i]){
+              inverse=TRUE
+            }
+
             ordre = order(resClustering[[k]]@parameters@mean[val_clust,1])
             tmp = as.factor(resClustering[[k]]@partition)
             tmp2=rep(NA,length(tmp))
             for (l in 1:3){
               tmp2[tmp==val_clust[ordre[l]]]=l
             }
-            resGenoAssign[k,]=-as.numeric(as.character(tmp2))+3 # car 1 doit etre 1 ; 2e doit etre 2 et 3e doit etre 3 (ordre croissant)
+            if (inverse){
+              resGenoAssign[k,]=-as.numeric(as.character(tmp2))+4
+            } else {
+              resGenoAssign[k,]=-as.numeric(as.character(tmp2))+3 # car 1 doit etre 2 ; 2e doit etre 1 et 3e doit etre 0 (ordre croissant)
+            }
           } else{
+
+            i_min = which(m == max(m))
+            if (prop[i_min]>2*prop[i]){
+              inverse=TRUE
+            }
+
             ordre = order(resClustering[[k]]@parameters@mean[val_clust,1])
             tmp = as.factor(resClustering[[k]]@partition)
             tmp2=rep(NA,length(tmp))
             for (l in 1:3){
               tmp2[tmp==val_clust[ordre[l]]]=l
             }
-            resGenoAssign[k,]=-as.numeric(as.character(tmp2))+4
+            if (inverse){
+              resGenoAssign[k,]=-as.numeric(as.character(tmp2))+3
+            } else {
+              resGenoAssign[k,]=-as.numeric(as.character(tmp2))+4
+            }
           }
+          # if (m[i]>0){
+          #   ordre = order(resClustering[[k]]@parameters@mean[val_clust,1])
+          #   tmp = as.factor(resClustering[[k]]@partition)
+          #   tmp2=rep(NA,length(tmp))
+          #   for (l in 1:3){
+          #     tmp2[tmp==val_clust[ordre[l]]]=l
+          #   }
+          #   resGenoAssign[k,]=-as.numeric(as.character(tmp2))+3 # car 1 doit etre 1 ; 2e doit etre 2 et 3e doit etre 3 (ordre croissant)
+          # } else{
+          #   ordre = order(resClustering[[k]]@parameters@mean[val_clust,1])
+          #   tmp = as.factor(resClustering[[k]]@partition)
+          #   tmp2=rep(NA,length(tmp))
+          #   for (l in 1:3){
+          #     tmp2[tmp==val_clust[ordre[l]]]=l
+          #   }
+          #   resGenoAssign[k,]=-as.numeric(as.character(tmp2))+4
+          # }
         } else if (n_clust_restant==2){ # si 2 clusters : valeur la plus extreme homoz, lautre heteroz : le plus proche
           m1=resClustering[[k]]@parameters@mean[val_clust[1],1]
           m2=resClustering[[k]]@parameters@mean[val_clust[2],1]
@@ -192,9 +238,9 @@ GenoAssign_pop_same = function(resClustering,SampleName,NbClustMax,SeuilNoCall,S
         resGenoAssign[k,is.na(resClustering[[k]]@partition)]=-1
         # On test si ce marker sera garde ou non
         ToKeep = keepMarkertriplo(marker = k,
-                               genotypePop = resGenoAssign[k,],
-                               data = Dataset[Dataset$MarkerName==k,],
-                               cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
+                                  genotypePop = resGenoAssign[k,],
+                                  data = Dataset[Dataset$MarkerName==k,],
+                                  cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
         df_classif[k,]=ToKeep
         if (!is.na(df_classif[k,"Message"])){
           if (df_classif[k,"Message"]=='CR' & verif[[2]]=="SD_gp"){
