@@ -53,7 +53,13 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
     n_core=parallel::detectCores()
     warning("The number of core asked is to high : will be set to maximum.")
   }
-
+  if (save_n!=''){
+    if (!dir.exists("./output_genotyping")){dir.create("./output_genotyping")}
+    if (!dir.exists(paste0("./output_genotyping/",save_n))){
+      dir.create(paste0("./output_genotyping/",save_n),recursive = TRUE)
+    }
+  }
+  
   MarkerId = names(res_clust) # stockage des noms des differents marqueurs
   nb_of_marker = length(MarkerId) # stockage du nombre total de marker
   if (nb_of_marker<500 & pop!="Yes" & save_n!='' & path_log!=''){
@@ -82,6 +88,7 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
   if (save_n!='' & path_log!=''){
     write(x = paste0("Batchsize : ",batchsize," ; Nb Batch : ",i_max),file = path_log,append=T)
   }
+  SampleName = unique(data_clustering$SampleName)
   t0 = Sys.time()
   # Parametrage des clusters
   clust_name = parallel::makeCluster(min(n_core,i_max))
@@ -92,7 +99,7 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
     if (pop=="Yes"){ # Lance genotypage avec la fonction adequate
       if (iter != i_max){ # petite particularite si iter == imax => le dernier batch ne fait pas forcement la taille maximum de batchsize
         GenoAssign_pop_same(resClustering = res_clust[(1+(iter-1)*batchsize):(iter*batchsize)],
-                            SampleName = unique(data_clustering$SampleName),
+                            SampleName = SampleName,
                             SeuilNoCall = SeuilNoCall,SeuilNbSD = SeuilNbSD,SeuilSD = SeuilSD,
                             NbClustMax = ploidy+1,
                             Dataset=data_clustering[data_clustering$MarkerName %in% names(res_clust)[(1+(iter-1)*batchsize):(iter*batchsize)],],
@@ -100,7 +107,7 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
       } else {
         # Lance le genotypage avec le dernier batch qui va en realiste jusquau dernier marker (au cas ou le batch ne soit pas complet)
         GenoAssign_pop_same(resClustering = res_clust[(1+(iter-1)*batchsize):nb_of_marker],
-                            SampleName = unique(data_clustering$SampleName),
+                            SampleName = SampleName,
                             SeuilNoCall = SeuilNoCall,SeuilNbSD = SeuilNbSD,SeuilSD = SeuilSD,
                             NbClustMax = ploidy+1,
                             Dataset=data_clustering[data_clustering$MarkerName %in% names(res_clust)[(1+(iter-1)*batchsize):nb_of_marker],],
@@ -109,7 +116,7 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
     } else if (pop!="Yes"){ # Lance genotypage avec la fonction adequate
       if (iter != i_max){
         GenoAssign_pop_dif(resClustering = res_clust[(1+(iter-1)*batchsize):(iter*batchsize)],
-                           SampleName = unique(data_clustering$SampleName),
+                           SampleName = SampleName,
                            SeuilNoCall = SeuilNoCall,SeuilNbSD = SeuilNbSD,SeuilSD = SeuilSD,
                            NbClustMax = ploidy+1,
                            Dataset=data_clustering[data_clustering$MarkerName %in% names(res_clust)[(1+(iter-1)*batchsize):(iter*batchsize)],],
@@ -117,7 +124,7 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
       } else {
         # Lance le genotypage avec le dernier batch qui va en realiste jusquau dernier marker (au cas ou le batch ne soit pas complet)
         GenoAssign_pop_dif(resClustering = res_clust[(1+(iter-1)*batchsize):nb_of_marker],
-                           SampleName = unique(data_clustering$SampleName),
+                           SampleName = SampleName,
                            SeuilNoCall = SeuilNoCall,SeuilNbSD = SeuilNbSD,SeuilSD = SeuilSD,
                            NbClustMax = ploidy+1,
                            Dataset=data_clustering[data_clustering$MarkerName %in% names(res_clust)[(1+(iter-1)*batchsize):nb_of_marker],],

@@ -1,6 +1,6 @@
 #' Launch parallel clustering
 #'
-#' Launch the clustering phase in parallel from the dataset with SampleName, Contrast and SigStren for each markers.
+#' Launch the clustering phase in parallel from the dataset with SampleName, Contrast and SigStren for each markers (MarkerName).
 #'
 #' @param data_clustering dataframe result from create dataset phase
 #' @param ploidy ploidy of offspring
@@ -32,7 +32,13 @@
 #'
 
 Run_Clustering = function(data_clustering,ploidy,save_n='',n_iter=5,D_min=0.28,n_core=1,path_log=''){
-
+  if (is.null(data_clustering$SampleName) | is.null(data_clustering$MarkerName) | is.null(data_clustering$Contrast) | is.null(data_clustering$SigStren)){
+    stop("One of SampleName, MarkerName, Contrast or SigStren is missing from data_clustering.")
+  }
+  data_clustering$Contrast[is.infinite(data_clustering$Contrast)]=NA
+  data_clustering$SigStren[is.infinite(data_clustering$SigStren)]=NA
+  data_clustering$Contrast = round(data_clustering$Contrast,3)
+  data_clustering$SigStren = round(data_clustering$SigStren,3)
   if (!is.numeric(ploidy)){
     stop("ploidy must be a numeric value !")
   } else if (ploidy>3 | ploidy<2){
@@ -44,14 +50,14 @@ Run_Clustering = function(data_clustering,ploidy,save_n='',n_iter=5,D_min=0.28,n
     n_core=parallel::detectCores()
     warning("The number of core asked is to high : will be set to maximum.")
   }
-
-  nb_indiv=length(unique(data_clustering$SampleName))
+  SN = unique(data_clustering$SampleName)
+  nb_indiv=length(SN)
   if (nb_indiv<50 & save_n!='' & path_log!=''){
     write(x = "Warning : The number of individuals might not be enough.",file=path_log,append=T)
   } else if (nb_indiv<50 & save_n==''){
     warning("The number of individuals might not be enough.")
   }
-
+  
   MarkerId = unique(data_clustering$MarkerName) # stockage des noms des differents marqueurs
   nb_of_marker = length(MarkerId) # stockage du nombre total de marker
   batchsize = nb_of_marker%/%n_core
@@ -64,7 +70,7 @@ Run_Clustering = function(data_clustering,ploidy,save_n='',n_iter=5,D_min=0.28,n
       i_max = 2*i_max
     }
   }
-
+  
   if (save_n!='' & path_log!=''){
     write(x = paste0("Batchsize : ",batchsize," ; Nb Batch : ",i_max),file = path_log,append=T)
   }
@@ -81,12 +87,12 @@ Run_Clustering = function(data_clustering,ploidy,save_n='',n_iter=5,D_min=0.28,n
       # Lance le clustering
       clust=Clustering(dataset = data_clustering[data_clustering$MarkerName %in% MarkerId[(1+(i-1)*batchsize):(i*batchsize)],],
                        nb_clust_possible = ploidy+1,
-                       n_iter = n_iter,Dmin = D_min)
+                       n_iter = n_iter,Dmin = D_min,SampleName=SN)
     } else {
       # Lance le clustering avec le dernier batch qui va en realiste jusquau dernier marker (au cas ou le batch ne soit pas complet)
       clust=Clustering(dataset = data_clustering[data_clustering$MarkerName %in% MarkerId[(1+(i-1)*batchsize):nb_of_marker],],
                        nb_clust_possible = ploidy+1,
-                       n_iter = n_iter,Dmin = D_min)
+                       n_iter = n_iter,Dmin = D_min,SampleName=SN)
     }
     clust
   }

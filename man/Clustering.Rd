@@ -4,16 +4,24 @@
 \alias{Clustering}
 \title{Clustering function}
 \usage{
-Clustering(dataset, nb_clust_possible, n_iter = 5, Dmin = 0.28)
+Clustering(
+  dataset,
+  nb_clust_possible,
+  n_iter = 5,
+  Dmin = 0.28,
+  SampleName = NULL
+)
 }
 \arguments{
-\item{dataset}{dataset with Contrast and SigStren for each individuals and each markers}
+\item{dataset}{dataset with Contrast and SigStren for each individuals (as SampleName) and each markers (as MarkerName)}
 
 \item{nb_clust_possible}{number of cluster possible (ploidy+1)}
 
 \item{n_iter}{number of iterations to perform for clustering}
 
 \item{Dmin}{minimal distance between two clusters}
+
+\item{SampleName}{vector with all SampleName (important when missing genotype)}
 }
 \value{
 list of results of clustering

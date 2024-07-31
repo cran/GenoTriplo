@@ -113,7 +113,7 @@ launch_GenoShiny = function(){
                                                                 label = div("Call Rate threshold (marker)",
                                                                             bsButton(inputId = "q26",label = "",icon = icon("question"), style = "info", size = "extra-small")),
                                                                 min = 0,max = 1,value = 0.97,step = 0.01)
-
+                                                    
                                    ),
                                    fileInput(inputId = "clust_file_geno",
                                              label = div("Data saved for genotyping",
@@ -171,7 +171,7 @@ launch_GenoShiny = function(){
                                                               label = div("Name of the plot to save for clustering",
                                                                           bsButton(inputId = "q29",label = "",icon = icon("question"), style = "info", size = "extra-small"))),
                                                     actionButton(inputId = "SavePlot",label = "Save plot"))
-
+                                   
                           )
              ),
       ),
@@ -205,7 +205,13 @@ launch_GenoShiny = function(){
                               h4("Informations on the selected individual (click)"),
                               verbatimTextOutput("click_info"),
                               h4("Informations on the selected individuals (brush)"),
-                              verbatimTextOutput("brush_info"))
+                              verbatimTextOutput("brush_info"),
+                              uiOutput(outputId = "Select_Geno"),
+                              actionButton(inputId = "Change_Geno",label = "Change Genotype"),
+                              actionButton(inputId = "save_new_geno",,
+                                           label = div("Save genotype with applied changes",
+                                                       bsButton(inputId = "q30",label = "",icon = icon("question"), style = "info", size = "extra-small")))
+                              )
       ),
       column(1)
     ),
@@ -236,12 +242,13 @@ launch_GenoShiny = function(){
     bsTooltip(id = "q26",title = "Call rate needed for a marker to be kept as good marker (below : bad ; above : good)"),
     bsTooltip(id = "q27",title = "FLD : Fisher s Linear Discriminant<br/>Measurement of the quality of a marker by taking into account the distance between the two closest genotypes and their standard deviation<br/>If under : bad ; if higher : good"),
     bsTooltip(id = "q28",title = "HetSO : Heterozygous Strength Offset<br/>Measurement of the position of the heterozygous cluster compared to homozygous clusters (y axis) as the heterozygous cluster is expected to be above homozygous clusters.<br/>If under : bad ; if higher : good"),
-    bsTooltip(id = "q29",title = "Type the name you want for saving ;<br/>The marker name will automatically be added at the end of the name file;<br/>The plot is saved in the plot folder (which is automatically be created)")
+    bsTooltip(id = "q29",title = "Type the name you want for saving ;<br/>The marker name will automatically be added at the end of the name file;<br/>The plot is saved in the plot folder (which is automatically be created)"),
+    bsTooltip(id = "q30",title = "Save the changed genotype<br/>Saved in a separate folder with '_updated' extension.")
   )
-
+  
   # Define server logic
   server <- function(input, output,session) {
-
+    
     # Info Fin Genotyping
     output$Table_geno = renderDataTable({
       if (length(fin_geno$bon_mauvais)>0){
@@ -252,7 +259,7 @@ launch_GenoShiny = function(){
         datatable(df, rownames = TRUE,options = list(dom = 't'))
       }
     })
-
+    
     output$plot_CR = renderPlot({
       if (length(fin_geno$cr_indiv>0)){
         indiv = data.frame(CR=fin_geno$cr_indiv[,"CR"],Type="Indiv")
@@ -270,7 +277,7 @@ launch_GenoShiny = function(){
         fin_geno$plot
       }
     })
-
+    
     ##### Info Visualisation #####
     data = reactiveValues(raw=data.frame(),
                           raw_marker=data.frame(),
@@ -280,8 +287,35 @@ launch_GenoShiny = function(){
                           marker=c(),
                           plot=ggplot(),
                           plate=data.frame(),
-                          indiv=c())
-
+                          indiv=c(),
+                          SampleName=c())
+    
+    # To Save new genotype
+    observeEvent(input$save_new_geno,{
+      res_geno=list()
+      res_geno[[1]] = data$geno
+      res_geno[[2]] = rownames(data$geno)
+      res_geno[[3]] = data$valid
+      res_marker = res_geno[[3]]
+      ploidy = max(data$valid$nClus,na.rm=T)
+      res_geno[[4]]=res_geno[[1]] # creation dun 4e element a la liste de resultat
+      # Changement des genotype 0,1,2,... en A/A A/B ou A/A/A, A/A/B,... suivant la ploidy
+      for (k in 1:(ploidy-1)){
+        res_geno[[4]][res_geno[[4]]==k]=paste(paste(rep("B",k),collapse="/"),paste(rep("A",ploidy-k),collapse="/"),sep = "/")
+      }
+      res_geno[[4]][res_geno[[4]]==0]=paste(rep("A",ploidy),collapse="/")
+      res_geno[[4]][res_geno[[4]]==ploidy]=paste(rep("B",ploidy),collapse="/")
+      
+      geno_APIS = res_geno[[4]]
+      data_clustering = data$raw
+      delay = "Genotype updated"
+      name = strsplit(x = input$file_visu$name,split = ".",fixed=TRUE)[[1]][1]
+      if (!dir.exists(paste0("./output_genotyping/",name,"_updated"))){
+        dir.create(paste0("./output_genotyping/",name,"_updated"))
+      }
+      save(res_geno,data_clustering,delay,file=paste0("./output_genotyping/",name,"_updated/",name,"_updated.Rdata"))
+      save(geno_APIS,res_marker,delay,file=paste0("./output_genotyping/",name,"_updated/",name,"_updated_geno_APIS.Rdata"))
+    })
     # round2=function(x){round(x,2)}
     observeEvent(input$file_visu,{
       if (!is.null(input$file_visu$datapath)){
@@ -293,7 +327,7 @@ launch_GenoShiny = function(){
           arrange(desc(.data$toKeep),desc(.data$MAF))
       }
     })
-
+    
     observeEvent(c(input$categories,data$marker0),{
       if (length(data$marker0)>0){
         if (input$categories=='All'){
@@ -306,7 +340,7 @@ launch_GenoShiny = function(){
         }
       }
     })
-
+    
     output$marker_select = renderUI({
       if (length(data$marker)>0){
         selectizeInput(inputId = "marker_name",
@@ -316,7 +350,7 @@ launch_GenoShiny = function(){
                        choices = data$marker,multiple = FALSE,options=list(maxOptions=500)) # length(data$marker)
       }
     })
-
+    
     output$which_plate = renderUI({
       if (!is.null(input$select_plate$datapath)){
         indiv_plate = read.delim(file = input$select_plate$datapath,header=TRUE,sep = "\t",numerals = "no.loss")
@@ -336,7 +370,7 @@ launch_GenoShiny = function(){
                     choices = c("All",unique(format(indiv_plate$Plate,scientific=FALSE))),selected = "All")
       }
     })
-
+    
     output$which_indiv = renderUI({
       if (!is.null(input$select_indiv$datapath)){
         data$indiv = read.delim(file = input$select_indiv$datapath,header=FALSE,sep = "\t")
@@ -347,7 +381,41 @@ launch_GenoShiny = function(){
                     choices = c("All","Selected"),selected = "Selected")
       }
     })
-
+    
+    # Display possible genotype to change
+    output$Select_Geno = renderUI({
+      if (length(data$marker)>0){ # verify that a datasset has been loaded
+        if (max(data$valid$nClus,na.rm=T)==4){
+          radioButtons(inputId = "Select_Geno3",
+                      label = div("Choose the genotype to change",
+                                  tipify(el = bsButton(inputId = "30",label = "",icon = icon("question"), style = "info", size = "extra-small"),
+                                         title = "Choose the genotype you want for the selected individuals on the graph to update them via the button below.")),
+                      choices = c("3","2","1","0","-1"),selected = "3",inline = TRUE)
+        } else if (max(data$valid$nClus,na.rm=T)==3){
+          radioButtons(inputId = "Select_Geno2",
+                      label = div("Choose the genotype to change",
+                                  tipify(el = bsButton(inputId = "31",label = "",icon = icon("question"), style = "info", size = "extra-small"),
+                                         title = "Choose the genotype you want for the selected individuals on the graph to update them via the button below.")),
+                      choices = c("2","1","0","-1"),selected = "2",inline = TRUE)
+        }
+      }
+    })
+    
+    # Update the genotype of the selected individuals
+    observeEvent(input$Change_Geno,{
+      if (max(data$valid$nClus,na.rm=T)==4){
+        data$geno[which(rownames(data$geno) == input$marker_name),which(colnames(data$geno) %in% data$SampleName)] = as.numeric(input$Select_Geno3)
+        data$valid[which(rownames(data$valid)==input$marker_name),] = cbind(data.frame(MarkerName=input$marker_name),keepMarkertriplo(marker = input$marker_name,
+                                                                               genotypePop = data$geno[which(rownames(data$geno) == input$marker_name),],
+                                                                               data = data$raw[data$raw$MarkerName==input$marker_name,]))
+        } else if (max(data$valid$nClus,na.rm=T)==3){
+        data$geno[which(rownames(data$geno) == input$marker_name),which(colnames(data$geno) %in% data$SampleName)] = as.numeric(input$Select_Geno2)
+        data$valid[which(rownames(data$valid)==input$marker_name),] = cbind(data.frame(MarkerName=input$marker_name),keepMarkerdiplo(marker = input$marker_name,
+                                                                               genotypePop = data$geno[which(rownames(data$geno) == input$marker_name),],
+                                                                               data = data$raw[data$raw$MarkerName==input$marker_name,]))
+      }
+    })
+    
     ##### Graph #####
     output$plot_visu = renderPlot({
       if (!is.null(input$file_visu$datapath) & ! is.null(input$marker_name)){
@@ -439,19 +507,25 @@ launch_GenoShiny = function(){
     output$click_info <- renderPrint({
       if (!is.null(input$file_visu$datapath) & ! is.null(input$marker_name)){
         if (input$marker_name %in% data$marker){
-          nearPoints(df = data$raw_marker[,c('SampleName','Contrast','SigStren')],coordinfo = input$plot_click, addDist = TRUE,threshold = 10,maxpoints = 10,)
+          tmp = nearPoints(df = data$raw_marker[,c('SampleName','Contrast','SigStren')],xvar = "Contrast",yvar = "SigStren",
+                           coordinfo = input$plot_click, addDist = TRUE,threshold = 10,maxpoints = 1)
+          print(tmp)
+          data$SampleName = tmp$SampleName
         }
       }
     })
-
+    
     output$brush_info <- renderPrint({
       if (!is.null(input$file_visu$datapath) & ! is.null(input$marker_name)){
         if (input$marker_name %in% data$marker){
-          brushedPoints(df = data$raw_marker[,c('SampleName','Contrast','SigStren')],brush = input$plot_brush)
+          tmp = brushedPoints(df = data$raw_marker[,c('SampleName','Contrast','SigStren')],xvar = "Contrast",yvar = "SigStren",
+                              brush = input$plot_brush)
+          print(tmp)
+          data$SampleName = tmp$SampleName
         }
       }
     })
-
+    
     observeEvent(input$SavePlot,{
       if (!dir.exists("./plot")){
         dir.create("./plot")
@@ -485,7 +559,7 @@ launch_GenoShiny = function(){
     output$end3 = renderText({
       end_process$z
     })
-
+    
     ##### Create dataset section #####
     observeEvent(input$launch_create,{
       if (input$save_name1 == ""){
@@ -493,9 +567,9 @@ launch_GenoShiny = function(){
       }
       if (! is.null(input$txt_file) & input$save_name1 != ""){
         if (!dir.exists("./output_create")){dir.create("./output_create")}
-
+        
         has_cmd = TRUE
-
+        
         os = Sys.info()["sysname"] # Operating system -> to check after if it is Windows or else
         t0=Sys.time()
         date_time = Sys.time()
@@ -515,7 +589,7 @@ launch_GenoShiny = function(){
         } else {
           run(paste0("sh ./Extraction.sh ",path),wd=sh_path)
         }
-
+        
         if (!file.exists("./tmp.txt")){
           has_cmd = FALSE
           write(x = "Running from R as bash command couldn't run (see what to do to run bash command on Windows if wanted)",file = path_log,append = TRUE)
@@ -523,7 +597,7 @@ launch_GenoShiny = function(){
           colnames(raw_data) = gsub(pattern = "_[A-Z][0-9].CEL",replacement = "",x = colnames(raw_data))
           colnames(raw_data) = gsub(pattern = "_[A-Z][0-9][0-9].CEL",replacement = "",x = colnames(raw_data))
         }
-
+        
         if (!is.null(input$marker_file)){
           write(x = paste0("Selecting marker from : ",input$marker_file$name),file = path_log,append = TRUE)
           path=input$marker_file$datapath
@@ -542,7 +616,7 @@ launch_GenoShiny = function(){
             raw_data = raw_data[to_keep,]
           }
         }
-
+        
         if (!is.null(input$indiv_file)){
           write(x = paste0("Selecting individuals from : ",input$indiv_file$name),file = path_log,append = TRUE)
           path=input$indiv_file$datapath
@@ -561,7 +635,7 @@ launch_GenoShiny = function(){
             raw_data = raw_data[,c(1,to_keep)]
           }
         }
-
+        
         if (has_cmd){
           write(x = paste0("Loading dataset... Time : ",Sys.time()),file = path_log,append = TRUE)
           message(paste0("Loading dataset... Time : ",Sys.time()))
@@ -575,7 +649,7 @@ launch_GenoShiny = function(){
           rm(raw_data)
           gc()
         }
-
+        
         write(x = paste0("Start formating... Time : ",Sys.time()),file = path_log,append = TRUE)
         message(paste0("Start formating... Time : ",Sys.time()))
         out=Create_Dataset(data = dta0,save_name = input$save_name1)
@@ -603,7 +677,12 @@ launch_GenoShiny = function(){
         path_log = paste0("./output_clustering/",date_time,"_log_clust.log")
         write(x = "-----Clustering-----",file = path_log)
         write(x = paste0("Load dataset : ",input$data_file_clust$name," -- ",Sys.time()),file = path_log,append = T)
-        load(file = input$data_file_clust$datapath)
+        nam_load=load(file = input$data_file_clust$datapath)
+        if (nam_load[1]!='data_clustering'){
+          eval(parse(text = paste0('data_clustering=',nam_load[1])))
+          eval(parse(text=paste0('rm(',nam_load[1],')')))
+          gc()
+        }
         l_marker = unique(data_clustering$MarkerName)
         nb_marker = length(l_marker)
         taille_batch_marker = 1000*as.numeric(input$n_core1)
@@ -692,7 +771,7 @@ launch_GenoShiny = function(){
     ##### Genotyping section #####
     fin_geno = reactiveValues(cr_indiv=data.frame(),cr_marker=data.frame(),bon_mauvais=data.frame(),plot=ggplot(),
                               corresLoad=FALSE,corres_ATCGtmp=data.frame(),corres_ATCG=data.frame(),atcg_choices=c())
-
+    
     observeEvent(input$corres_ATCG,{
       if (!is.null(input$corres_ATCG$datapath)){
         fin_geno$corres_ATCGtmp = read.table(file = input$corres_ATCG$datapath,header=T,sep=";",check.names = FALSE)
@@ -710,7 +789,7 @@ launch_GenoShiny = function(){
         }
       }
     })
-
+    
     output$head_corres=renderDataTable({
       if (fin_geno$corresLoad){
         datatable(head(fin_geno$corres_ATCGtmp),rownames = FALSE,options = list(dom = 't'),
@@ -721,13 +800,13 @@ launch_GenoShiny = function(){
       fin_geno$corresLoad
     })
     outputOptions(output, 'corres_load', suspendWhenHidden=FALSE)
-
+    
     observeEvent(c(input$colA,input$colB,input$probeset),{
       if ((input$colA != input$colB) & (input$colA != input$probeset) & (input$colB != input$probeset)){
         fin_geno$corres_ATCG = fin_geno$corres_ATCGtmp %>% rename(Allele_A=input$colA,Allele_B=input$colB,probeset_id=input$probeset)
       }
     })
-
+    
     output$colA = renderUI({
       if (fin_geno$corresLoad){
         selectInput(inputId = "colA",
@@ -755,7 +834,7 @@ launch_GenoShiny = function(){
                     choices = fin_geno$atcg_choices,multiple = FALSE)
       }
     })
-
+    
     observeEvent(input$launch_geno,{
       fin_geno$cr_indiv = data.frame()
       fin_geno$cr_marker = data.frame()
@@ -931,7 +1010,7 @@ launch_GenoShiny = function(){
             round(1-(length(which(x==-1))/length(x)),3)
           }
           fin_geno$cr_indiv = data.frame(SampleName=names(res_geno[[1]]),CR=apply(X = res_geno[[1]],MARGIN = 2,FUN = count_na))
-
+          
           # Gestion doublon pour APIS
           db_ind = c()
           db_nam = c()
@@ -954,7 +1033,7 @@ launch_GenoShiny = function(){
               }
             }
           }
-
+          
           save(data_APIS,res_marker,file = paste0(dirpath,input$save_name3,"_genoAPIS.Rdata"))
           load("./tmp/all.Rdata") # load data_clustering
           delay=tim
@@ -989,7 +1068,7 @@ launch_GenoShiny = function(){
           fin_geno$cr_indiv = list_return_geno[[1]]
           fin_geno$cr_marker = list_return_geno[[2]]
           fin_geno$bon_mauvais = list_return_geno[[3]]
-
+          
           # .ped and .map output
           if (!is.null(fin_geno$corres_ATCG)){
             atcg_ab = read.table(file = paste0(dirpath,input$save_name3,"_genoATCG.csv"),sep=";",header=TRUE,check.names = FALSE)
@@ -1020,8 +1099,8 @@ launch_GenoShiny = function(){
       }
     })
   }
-
-
+  
+  
   # Set Max size used in Shiny (heavy files for example)
   options(shiny.maxRequestSize=10000*1024^2) # 10000 pour 10Go => augmenter si besoin
   shinyApp(ui = ui, server = server)

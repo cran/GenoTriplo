@@ -12,7 +12,6 @@
 verif_sd=function(genotype,data,SeuilSD=0.28){
   res=genotype # on stock le genotype dans un vecteur qui portera les modifications
   message="" # rien a signaler au depart
-
   for (i in unique(as.numeric(genotype))){ # pour chacun des clusters (genotypes)
     if (!is.na(i)){
       indiv = data$SampleName[which(genotype==i)] # stock les indivs du genotype i

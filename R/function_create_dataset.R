@@ -2,7 +2,7 @@
 #'
 #' Create SigStren and Contrast variables from luminescence values of probeset A and B of each markers and return a dataframe to be used for clustering or save the result if a saving name is given
 #'
-#' @param data dataframe with probeset_id as first variable (markername finishing by -A or -B depending on the probeset) and individuals as variable with luminescence values for each probeset (dataset created by bash code by shiny app)
+#' @param data dataframe with probeset_id or equivalent as first variable (markername finishing by -A or -B depending on the probeset) and individuals as variable with luminescence values for each probeset (dataset created by bash code by shiny app)
 #' @param save_name saving name
 #' @import dplyr
 #' @importFrom tidyr pivot_wider pivot_longer
@@ -14,19 +14,21 @@
 #' @export
 
 Create_Dataset = function(data,save_name=NULL){
-  if (is.null(data$probeset_id)){stop("Must have 'probeset_id' as first variable !")}
+  # if (is.null(data$probeset_id)){stop("Must have 'probeset_id' as first variable !")}
   dta = tidyr::pivot_longer(data = data,cols = 2:dim(data)[2]) # on passe les SampleName en tant que variable unique (tableau moins large mais plus long : plus que 3 colonnes)
   rm(list='data')
   gc()
+  colnames(dta)[1] = 'probeset_id'
   dta$AorB = substr(dta$probeset_id,nchar(dta$probeset_id),nchar(dta$probeset_id)) # creation dune variable AorB suivant que le Marker soit A ou B
   dta$probeset_id = substr(dta$probeset_id,1,(nchar(dta$probeset_id)-2)) # retire le suffixe A/B suite a la creation de la variable AorB (-2 pour le '-A' ou '-B' des probesets)
   data_clustering = dta %>% group_by(.data$probeset_id,.data$name) %>%
     summarise(A=.data$value[.data$AorB=='A'],B=.data$value[.data$AorB=='B']) %>%
-    mutate(SigStren=((log2(.data$A)+log2(.data$B))/2), # creation variable SigStren
-           Contrast=log2(.data$A/.data$B)) %>%
+    mutate(SigStren=round(((log2(.data$A)+log2(.data$B))/2),3), # creation variable SigStren
+           Contrast=round(log2(.data$A/.data$B)),3) %>%
     rename(SampleName=.data$name,MarkerName=.data$probeset_id) %>%
     select(.data$SampleName,.data$MarkerName,.data$SigStren,.data$Contrast)
-
+  data_clustering$Contrast[is.infinite(data_clustering$Contrast)]=NA
+  data_clustering$SigStren[is.infinite(data_clustering$SigStren)]=NA
   # dta$Id_unique=paste(dta$name,dta$probeset_id,sep = "_sep_") # creation dun identifiant pour chaque ligne en vue de la prochaine fonction
   # dta=dta[,c(3:5)]
   # gc()

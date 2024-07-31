@@ -33,7 +33,7 @@ Run_Clustering(
 the result of clustering or automatically save a list of objects if a saving name has been provided
 }
 \description{
-Launch the clustering phase in parallel from the dataset with SampleName, Contrast and SigStren for each markers.
+Launch the clustering phase in parallel from the dataset with SampleName, Contrast and SigStren for each markers (MarkerName).
 }
 \examples{
 
