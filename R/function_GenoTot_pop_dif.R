@@ -34,61 +34,64 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
     # Mean_max_clust=data.frame(Gp0=NA,Gp1=NA,Gp2=NA,P0=NA,P1=NA,P2=NA) # creation dun df qui contiendra les moyenne et proportion des genotype pour chaque marqueur ou il y a le nombre maximum de genotype
     Mean_max_clust=data.frame(Gp0=NA,Gp1=NA,Gp2=NA)
     for (k in MarkerName){ # on trouve deja ceux avec 3 groupes : assignation automatique + moyenne pour les suivants
-      # On verifie quil ny a pas dindividu trop eloignes sinon on les mets en NoCall
-      nb_sd_indiv = NbSD_gp(genotype = resClustering[[k]]$df$partition,
-                            data = Dataset[Dataset$MarkerName==k,],
-                            SampleName=SampleName)
-      if (length(which(nb_sd_indiv>SeuilNbSD))>0){
-        # resClustering[[k]]$df$partition=as.factor(resClustering[[k]]$df$partition)
-        resClustering[[k]]$df$partition[nb_sd_indiv>SeuilNbSD] = NA # individus trop eloignes mis en NA
-      }
-      # On verifie malgre la suppression des individus trop eloignes quun gp n'est pas trop etale
-      verif = verif_sd(genotype = resClustering[[k]]$df$partition,
-                       data = Dataset[Dataset$MarkerName==k,],
-                       SeuilSD=SeuilSD)
-      resClustering[[k]]$df$partition=as.factor(verif[[1]])
-      
-      if (verbose){print(paste0("Marker : ",k))}
-      if (! is.character(resClustering[[k]])){
-        val_clust = as.numeric(as.character(unique(resClustering[[k]]$df$partition[which(!is.na(resClustering[[k]]$df$partition))]))) # stockage des numeros de cluster restant
-        n_clust_restant = length(val_clust) # calcul du nombre de cluster restant
-        if (n_clust_restant==3){ # on regarde si il y a 3 clusters (le nombre maximum en diploide)
-          # Les genotypes sont ordonnes pour que le bon numero leur soient assigne
-          # Verification du SeuilNoCall => donne valeur -1 (qui sera transforme en NA par la suite)
-          ordre = order(resClustering[[k]]$means)
-          tmp = as.factor(resClustering[[k]]$df$partition)
-          tmp2=rep(NA,length(tmp))
-          for (l in 1:3){
-            tmp2[tmp==ordre[l]]=l
-          }
-          resGenoAssign[k,]=-as.numeric(as.character(tmp2))+4-1 # y=ax+b avec y=1=>x=3;y=2=>x=2;y=1=>x=1 puis -1 car valeur = 0,1,2 et non 1,2,3
-          tmp3 = apply(resClustering[[k]]@proba,MARGIN=1,FUN=max)
-          resGenoAssign[k,tmp3<SeuilNoCall]=-1
-          resGenoAssign[k,is.na(resClustering[[k]]$df$partition)]=-1
-          
-          # On test si ce marker sera garde ou non
-          ToKeep = keepMarkerdiplo(marker = k,
-                                   genotypePop = resGenoAssign[k,],
-                                   data = Dataset[Dataset$MarkerName==k,],
-                                   cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
-          df_classif[k,]=ToKeep # Stockage du resultat
-          if (!is.na(df_classif[k,"Message"])){
-            if (df_classif[k,"Message"]=='CR' & verif[[2]]=="SD_gp"){
-              df_classif[k,"Message"]="CR-SDgp" # changement dun des messages de rejet suivant une condition (si trop de NA et du a un gp avec trop grand sd)
+      if (length(resClustering[[k]])==1){ # signifie quil ne contient que 'Error'
+        df_classif[k,]=c(FALSE,NA,NA,NA,NA,NA,NA,"No clustering convergence.")
+        resGenoAssign[k,]=-1
+        list_max_clust_false=c(list_max_clust_false,k) # pour eviter quil repasse apres
+      } else {
+        # On verifie quil ny a pas dindividu trop eloignes sinon on les mets en NoCall
+        nb_sd_indiv = NbSD_gp(genotype = resClustering[[k]]$df$partition,
+                              data = Dataset[Dataset$MarkerName==k,],
+                              SampleName=SampleName)
+        if (length(which(nb_sd_indiv>SeuilNbSD))>0){
+          # resClustering[[k]]$df$partition=as.factor(resClustering[[k]]$df$partition)
+          resClustering[[k]]$df$partition[nb_sd_indiv>SeuilNbSD] = NA # individus trop eloignes mis en NA
+        }
+        # On verifie malgre la suppression des individus trop eloignes quun gp n'est pas trop etale
+        verif = verif_sd(genotype = resClustering[[k]]$df$partition,
+                         data = Dataset[Dataset$MarkerName==k,],
+                         SeuilSD=SeuilSD)
+        resClustering[[k]]$df$partition=as.factor(verif[[1]])
+        
+        if (verbose){print(paste0("Marker : ",k))}
+        if (! is.character(resClustering[[k]])){
+          val_clust = as.numeric(as.character(unique(resClustering[[k]]$df$partition[which(!is.na(resClustering[[k]]$df$partition))]))) # stockage des numeros de cluster restant
+          n_clust_restant = length(val_clust) # calcul du nombre de cluster restant
+          if (n_clust_restant==3){ # on regarde si il y a 3 clusters (le nombre maximum en diploide)
+            # Les genotypes sont ordonnes pour que le bon numero leur soient assigne
+            # Verification du SeuilNoCall => donne valeur -1 (qui sera transforme en NA par la suite)
+            ordre = order(resClustering[[k]]$means)
+            tmp = as.factor(resClustering[[k]]$df$partition)
+            tmp2=rep(NA,length(tmp))
+            for (l in 1:3){
+              tmp2[tmp==ordre[l]]=l
+            }
+            resGenoAssign[k,]=-as.numeric(as.character(tmp2))+4-1 # y=ax+b avec y=1=>x=3;y=2=>x=2;y=1=>x=1 puis -1 car valeur = 0,1,2 et non 1,2,3
+            tmp3 = apply(resClustering[[k]]@proba,MARGIN=1,FUN=max)
+            resGenoAssign[k,tmp3<SeuilNoCall]=-1
+            resGenoAssign[k,is.na(resClustering[[k]]$df$partition)]=-1
+            
+            # On test si ce marker sera garde ou non
+            ToKeep = keepMarkerdiplo(marker = k,
+                                     genotypePop = resGenoAssign[k,],
+                                     data = Dataset[Dataset$MarkerName==k,],
+                                     cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
+            df_classif[k,]=ToKeep # Stockage du resultat
+            if (!is.na(df_classif[k,"Message"])){
+              if (df_classif[k,"Message"]=='CR' & verif[[2]]=="SD_gp"){
+                df_classif[k,"Message"]="CR-SDgp" # changement dun des messages de rejet suivant une condition (si trop de NA et du a un gp avec trop grand sd)
+              }
+            }
+            if (ToKeep$toKeep){ # si ce marker est bon
+              list_max_clust=c(list_max_clust,k) # on stock le fait que ce marker soit bon
+              Mean_max_clust[length(list_max_clust),]=resClustering[[k]]$means[ordre] # on garde ses valeurs de centre de cluster comme reference
+            } else { # si marker pas bon
+              list_max_clust_false=c(list_max_clust_false,k) # on stock le fait quil ne soit pas bon (mais on stock quand meme pour pas quil repasse dans la prochaine boucle)
             }
           }
-          if (ToKeep$toKeep){ # si ce marker est bon
-            list_max_clust=c(list_max_clust,k) # on stock le fait que ce marker soit bon
-            Mean_max_clust[length(list_max_clust),]=resClustering[[k]]$means[ordre] # on garde ses valeurs de centre de cluster comme reference
-          } else { # si marker pas bon
-            list_max_clust_false=c(list_max_clust_false,k) # on stock le fait quil ne soit pas bon (mais on stock quand meme pour pas quil repasse dans la prochaine boucle)
-          }
-          
-          
         }
       }
     }
-    
     # Calcul des moyennes de reference des differents genotypes possibles (avec prise en compte de leur proportion au sein de leur proche marker)
     Mu_gp0 = mean(Mean_max_clust$Gp0)
     Mu_gp1 = mean(Mean_max_clust$Gp1)
@@ -173,54 +176,60 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
     # Mean_max_clust=data.frame(Gp0=NA,Gp1=NA,Gp2=NA,Gp3=NA,P0=NA,P1=NA,P2=NA,P3=NA)
     Mean_max_clust=data.frame(Gp0=NA,Gp1=NA,Gp2=NA,Gp3=NA)
     for (k in MarkerName){ # on trouve deja ceux avec 3 groupes : assignation automatique + moyenne pour les suivants
-      # On verifie quil ny a pas dindividu trop eloignes sinon on les supprime
-      nb_sd_indiv = NbSD_gp(genotype = resClustering[[k]]$df$partition,
-                            data = Dataset[Dataset$MarkerName==k,],
-                            SampleName=SampleName)
-      if (length(which(nb_sd_indiv>SeuilNbSD))>0){
-        # resClustering[[k]]$df$partition=as.factor(resClustering[[k]]$df$partition)
-        resClustering[[k]]$df$partition[nb_sd_indiv>SeuilNbSD] = NA
-      }
-      # On verifie malgre la suppression des individus trop eloignes quun gp n'est pas trop etale
-      verif = verif_sd(genotype = resClustering[[k]]$df$partition,
-                       data = Dataset[Dataset$MarkerName==k,],
-                       SeuilSD=SeuilSD)
-      resClustering[[k]]$df$partition=as.factor(verif[[1]])
-      # print(k)
-      val_clust = as.numeric(as.character(unique(resClustering[[k]]$df$partition[which(!is.na(resClustering[[k]]$df$partition))])))
-      n_clust_restant = length(val_clust)
-      if (n_clust_restant==4){
-        ordre = order(resClustering[[k]]$means)
-        tmp = as.factor(resClustering[[k]]$df$partition)
-        tmp2=rep(NA,length(tmp))
-        for (l in 1:4){
-          tmp2[tmp==ordre[l]]=l
+      if (length(resClustering[[k]])==1){ # signifie quil ne contient que 'Error'
+        df_classif[k,]=c(FALSE,NA,NA,NA,NA,NA,NA,"No clustering convergence.")
+        resGenoAssign[k,]=-1
+        list_max_clust_false=c(list_max_clust_false,k) # pour eviter quil repasse apres
+      } else {
+        # On verifie quil ny a pas dindividu trop eloignes sinon on les supprime
+        nb_sd_indiv = NbSD_gp(genotype = resClustering[[k]]$df$partition,
+                              data = Dataset[Dataset$MarkerName==k,],
+                              SampleName=SampleName)
+        if (length(which(nb_sd_indiv>SeuilNbSD))>0){
+          # resClustering[[k]]$df$partition=as.factor(resClustering[[k]]$df$partition)
+          resClustering[[k]]$df$partition[nb_sd_indiv>SeuilNbSD] = NA
         }
-        resGenoAssign[k,]=-as.numeric(as.character(tmp2))+5-1
-        # tmp3 = apply(resClustering[[k]]@proba,MARGIN=1,FUN=max)
-        resGenoAssign[k,resClustering[[k]]$df$proba<SeuilNoCall]=-1
-        resGenoAssign[k,is.na(resClustering[[k]]$df$partition)]=-1
-        if (!is.null(Dataset)){
-          # On test si on garde ou non
-          ToKeep = keepMarkertriplo(marker = k,
-                                    genotypePop = resGenoAssign[k,],
-                                    data = Dataset[Dataset$MarkerName==k,],
-                                    cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
-          df_classif[k,]=ToKeep
-          if (!is.na(df_classif[k,"Message"])){
-            if (df_classif[k,"Message"]=='CR' & verif[[2]]=="SD_gp"){
-              df_classif[k,"Message"]="CR-SDgp"
+        # On verifie malgre la suppression des individus trop eloignes quun gp n'est pas trop etale
+        verif = verif_sd(genotype = resClustering[[k]]$df$partition,
+                         data = Dataset[Dataset$MarkerName==k,],
+                         SeuilSD=SeuilSD)
+        resClustering[[k]]$df$partition=as.factor(verif[[1]])
+        # print(k)
+        val_clust = as.numeric(as.character(unique(resClustering[[k]]$df$partition[which(!is.na(resClustering[[k]]$df$partition))])))
+        n_clust_restant = length(val_clust)
+        if (n_clust_restant==4){
+          ordre = order(resClustering[[k]]$means)
+          tmp = as.factor(resClustering[[k]]$df$partition)
+          tmp2=rep(NA,length(tmp))
+          for (l in 1:4){
+            tmp2[tmp==ordre[l]]=l
+          }
+          resGenoAssign[k,]=-as.numeric(as.character(tmp2))+5-1
+          # tmp3 = apply(resClustering[[k]]@proba,MARGIN=1,FUN=max)
+          resGenoAssign[k,resClustering[[k]]$df$proba<SeuilNoCall]=-1
+          resGenoAssign[k,is.na(resClustering[[k]]$df$partition)]=-1
+          if (!is.null(Dataset)){
+            # On test si on garde ou non
+            ToKeep = keepMarkertriplo(marker = k,
+                                      genotypePop = resGenoAssign[k,],
+                                      data = Dataset[Dataset$MarkerName==k,],
+                                      cr_marker=cr_marker,fld_marker=fld_marker,hetso_marker=hetso_marker)
+            df_classif[k,]=ToKeep
+            if (!is.na(df_classif[k,"Message"])){
+              if (df_classif[k,"Message"]=='CR' & verif[[2]]=="SD_gp"){
+                df_classif[k,"Message"]="CR-SDgp"
+              }
             }
-          }
-          if (ToKeep$toKeep){
+            if (ToKeep$toKeep){
+              list_max_clust=c(list_max_clust,k)
+              Mean_max_clust[length(list_max_clust),]=resClustering[[k]]$means[ordre]
+              list_max_clust_false=c(list_max_clust_false,k)
+            }
+            
+          } else {
             list_max_clust=c(list_max_clust,k)
-            Mean_max_clust[length(list_max_clust),]=resClustering[[k]]$means[ordre]
-            list_max_clust_false=c(list_max_clust_false,k)
+            Mean_max_clust[length(list_max_clust),]=resClustering[[k]]$means[ordre] # on save les mean des cluster pour faire une moyenne generale
           }
-          
-        } else {
-          list_max_clust=c(list_max_clust,k)
-          Mean_max_clust[length(list_max_clust),]=resClustering[[k]]$means[ordre] # on save les mean des cluster pour faire une moyenne generale
         }
       }
     }

@@ -192,8 +192,8 @@ Run_Genotyping = function(data_clustering,res_clust,ploidy,SeuilNoCall=0.85,Seui
   if (ALL){ # if dataset has not been cut -> remove duplicat here
     db_ind = c()
     db_nam = c()
-    for (pat in c("_2",".2","_BIS",".BIS")){ # add more si necessary
-      indice = regexpr(pattern = pat,text = df_cr_ind$SampleName,fixed = TRUE) # fixed : so that . is not a regular expression replacing all character
+    for (pat in c("_2$","\\.2$","_BIS$","\\.BIS$")){ # add more si necessary
+      indice = regexpr(pattern = pat,text = df_cr_ind$SampleName,fixed = FALSE) # fixed : so that . is not a regular expression replacing all character
       db_ind = c(db_ind,df_cr_ind$SampleName[which(indice!=-1)])
       db_nam = c(db_nam,df_cr_ind$SampleName[which(df_cr_ind$SampleName %in% substr(x = df_cr_ind$SampleName[which(indice!=-1)],
                                                                                     start = 1,

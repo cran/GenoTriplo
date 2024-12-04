@@ -24,7 +24,7 @@ Create_Dataset = function(data,save_name=NULL){
   data_clustering = dta %>% group_by(.data$probeset_id,.data$name) %>%
     summarise(A=.data$value[.data$AorB=='A'],B=.data$value[.data$AorB=='B']) %>%
     mutate(SigStren=round(((log2(.data$A)+log2(.data$B))/2),3), # creation variable SigStren
-           Contrast=round(log2(.data$A/.data$B)),3) %>%
+           Contrast=round(log2(.data$A/.data$B),3)) %>%
     rename(SampleName=.data$name,MarkerName=.data$probeset_id) %>%
     select(.data$SampleName,.data$MarkerName,.data$SigStren,.data$Contrast)
   data_clustering$Contrast[is.infinite(data_clustering$Contrast)]=NA
