@@ -57,7 +57,7 @@ Clustering = function(dataset,nb_clust_possible,n_iter=5,Dmin=0.28,SampleName=NU
       res[[k]] = list(df=df,means=means) # on stock le resultat
     } else {
       sn = unique(dta$SampleName)
-      dta = dta %>% select(c("Contrast","SigStren")) # on ne garde que les deux colonnes qui nous interessent
+      dta = dta %>% ungroup() %>% select(c("Contrast","SigStren")) # on ne garde que les deux colonnes qui nous interessent
       clust_opt = min(2*nb_clust_possible,nrow(dta)) # on copie le nombre de cluster possible dans un nouvel objet et on sassure quil y a assez dinvididu
       mixmodICL=MixmodBoucle(dta=dta,nb_clust_opt = clust_opt,iter=n_iter) # lancement de la fonction de clustering
       while (clust_opt>1 & mixmodICL@error){  # on refait tourner des modeles si il y a eu que des erreurs mais on diminue le nombre d'iterations (n-2) et le nombre de cluster possible
