@@ -12,3 +12,9 @@ void : most results are automatically saved
 \description{
 Launch a shiny interface to use GenoTriplo. Really easy to use and user friendly, this will help you gain time !
 }
+\examples{
+\dontrun{
+launch_GenoShiny()
+}
+
+}

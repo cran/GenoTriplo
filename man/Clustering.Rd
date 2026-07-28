@@ -4,24 +4,16 @@
 \alias{Clustering}
 \title{Clustering function}
 \usage{
-Clustering(
-  dataset,
-  nb_clust_possible,
-  n_iter = 5,
-  Dmin = 0.28,
-  SampleName = NULL
-)
+Clustering(data_clustering, nb_clust_possible, n_iter = 5, Dmin = 0.28)
 }
 \arguments{
-\item{dataset}{dataset with Contrast and SigStren for each individuals (as SampleName) and each markers (as MarkerName)}
+\item{data_clustering}{dataset with Contrast and SigStren for each individuals (as SampleName) and each markers (as MarkerName)}
 
 \item{nb_clust_possible}{number of cluster possible (ploidy+1)}
 
 \item{n_iter}{number of iterations to perform for clustering}
 
 \item{Dmin}{minimal distance between two clusters}
-
-\item{SampleName}{vector with all SampleName (important when missing genotype)}
 }
 \value{
 list of results of clustering
@@ -30,9 +22,12 @@ list of results of clustering
 Clustering function to run clustering with no parallelization process nor auto save
 }
 \examples{
-data(GenoTriplo_to_clust)
+\dontrun{
+file.create = system.file("extdata/output_create/1","1_1_to_clust.Rdata", package = "GenoTriplo")
+load(file.create)
 ploidy=3
-res = Clustering(dataset=GenoTriplo_to_clust,
-                 nb_clust_possible=ploidy+1,n_iter=5)
+Clustering(data_clustering=data_clustering,nb_clust_possible=ploidy+1)
+}
+
 
 }

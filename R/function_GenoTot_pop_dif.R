@@ -1,12 +1,12 @@
 #' Genotype clusters for individuals from different populations
 #'
 #' @param resClustering object from clustering phase
+#' @param Dataset dataset with Contrast and SigStren for each marker and individuals
 #' @param SampleName list of samples name
 #' @param NbClustMax number of cluster maximum (ploidy+1)
 #' @param SeuilNoCall threshold of the probability of belonging to a cluster
 #' @param SeuilSD threshold for the standard deviation of a cluster
 #' @param SeuilNbSD thresold for the distance between an individuals and his cluster (x=Contrast)
-#' @param Dataset dataset with Contrast and SigStren for each marker and individuals
 #' @param cr_marker call rate threshold
 #' @param fld_marker FLD threshold
 #' @param hetso_marker HetSO threshold
@@ -18,7 +18,7 @@
 #' @keywords internal
 #' @noRd
 
-GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,SeuilSD,SeuilNbSD,Dataset,cr_marker=NULL,fld_marker=NULL,hetso_marker=NULL,verbose=FALSE){
+GenoAssign_pop_dif = function(resClustering,Dataset,SampleName,NbClustMax,SeuilNoCall,SeuilSD,SeuilNbSD,cr_marker=NULL,fld_marker=NULL,hetso_marker=NULL,verbose=FALSE){
   if (is.null(Dataset$MarkerName) | is.null(Dataset$SampleName) | is.null(Dataset$Contrast) | is.null(Dataset$SigStren)){
     stop("One of SampleName, MarkerName, Contrast or SigStren is missing from Dataset.")
   }
@@ -28,14 +28,14 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
   rownames(resGenoAssign)=MarkerName # les lignes prennet le nom des marqueurs
   list_max_clust=c() # liste stock les numeros des marker avec un nombre de genotype maximum
   list_max_clust_false=c() # pareil mais ceux qui ont perdu un cluster apres verification (pour eviter quils passent 2 fois dans les boucles)
-  df_classif=data.frame(toKeep=rep(NA,length(MarkerName)),CR=NA,FLD=NA,HetSO=NA,HomRO=NA,nClus=NA,MAF=NA,Message=NA) # creation df de classification des marqueurs (pour trier selon des criteres)
+  df_classif=data.frame(toKeep=rep(NA,length(MarkerName)),CR=NA,FLD=NA,HetSO=NA,HomRO=NA,nClus=NA,MAF=NA,p.HW=NA,Message=NA) # creation df de classification des marqueurs (pour trier selon des criteres)
   rownames(df_classif)=MarkerName # les lignes prennent le nom des marqueurs
   if (NbClustMax==3){ # on regarde le nombre de genotype maximum : ici diploide
     # Mean_max_clust=data.frame(Gp0=NA,Gp1=NA,Gp2=NA,P0=NA,P1=NA,P2=NA) # creation dun df qui contiendra les moyenne et proportion des genotype pour chaque marqueur ou il y a le nombre maximum de genotype
     Mean_max_clust=data.frame(Gp0=NA,Gp1=NA,Gp2=NA)
     for (k in MarkerName){ # on trouve deja ceux avec 3 groupes : assignation automatique + moyenne pour les suivants
       if (length(resClustering[[k]])==1){ # signifie quil ne contient que 'Error'
-        df_classif[k,]=c(FALSE,NA,NA,NA,NA,NA,NA,"No clustering convergence.")
+        df_classif[k,]=c(FALSE,NA,NA,NA,NA,NA,NA,NA,"No clustering convergence.")
         resGenoAssign[k,]=-1
         list_max_clust_false=c(list_max_clust_false,k) # pour eviter quil repasse apres
       } else {
@@ -153,7 +153,7 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
           }
           resGenoAssign[k,which(resClustering[[k]]$df$partition==val_clust[1])]=-g1+4-1 # y=ax+b avec y=1=>x=3;y=2=>x=2;y=1=>x=1 puis -1 car valeur = 0,1,2 et non 1,2,3
           resGenoAssign[k,which(resClustering[[k]]$df$partition==val_clust[2])]=-g2+4-1
-        }
+        } else if (n_clust_restant>NbClustMax){stop(paste0("Ploidy=",NbClustMax-1," donc nombre de cluster attendu maximum=",NbClustMax," mais ",n_clust_restant," trouve"))}
         # tmp = apply(resClustering[[k]]@proba,MARGIN=1,FUN=max)
         resGenoAssign[k,resClustering[[k]]$df$proba<SeuilNoCall]=-1
         resGenoAssign[k,is.na(resClustering[[k]]$df$partition)]=-1
@@ -180,6 +180,8 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
         df_classif[k,]=c(FALSE,NA,NA,NA,NA,NA,NA,"No clustering convergence.")
         resGenoAssign[k,]=-1
         list_max_clust_false=c(list_max_clust_false,k) # pour eviter quil repasse apres
+      } else if (n_clust_restant>NbClustMax){
+        stop(paste0("Ploidy=",NbClustMax-1," donc nombre de cluster attendu maximum=",NbClustMax," mais ",n_clust_restant," trouve"))
       } else {
         # On verifie quil ny a pas dindividu trop eloignes sinon on les supprime
         nb_sd_indiv = NbSD_gp(genotype = resClustering[[k]]$df$partition,
@@ -540,5 +542,6 @@ GenoAssign_pop_dif = function(resClustering,SampleName,NbClustMax,SeuilNoCall,Se
     }
   }
   df_classif = cbind(data.frame(MarkerName=rownames(df_classif)),df_classif)
+  resGenoAssign[is.na(resGenoAssign)]=-1
   return(list(resGenoAssign,list_max_clust,df_classif,Mu_tot))
 }

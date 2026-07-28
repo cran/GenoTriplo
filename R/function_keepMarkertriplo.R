@@ -8,6 +8,7 @@
 #' @param hetso_marker threshold HetSO for the marker
 #'
 #' @importFrom stats var
+#' @importFrom stats pchisq
 #'
 #' @return dataframe with different metrics for the given marker
 #'
@@ -203,16 +204,25 @@ keepMarkertriplo = function(marker,genotypePop,data,cr_marker=NULL,fld_marker=NU
       HomRO = m0
     }
   }
-  # Calcul MAF
-  f1 = length(which(genotypePop==0))/length(genotypePop)
-  f2 = length(which(genotypePop==1))/length(genotypePop)
-  f3 = length(which(genotypePop==2))/length(genotypePop)
-  f4 = length(which(genotypePop==3))/length(genotypePop)
-  MAF = min((3*f1+2*f2+f3)/3,(3*f4+2*f3+f2)/3)
+  
+  # Calcul MAF et Hardy-Weinberg
+  n_obs = c(length(which(genotypePop==0)),length(which(genotypePop==1)),length(which(genotypePop==2)),length(which(genotypePop==3)))
+  n_tot=sum(n_obs)
+  
+  p=(n_obs[1]+(2*n_obs[2]+n_obs[3])/3)/n_tot
+  q=(n_obs[4]+(2*n_obs[3]+n_obs[2])/3)/n_tot
+  
+  MAF = min(p,q)
+  
+  n_exp = c(p**3,3*p**2*q,3*p*q**2,q**3)*n_tot
+  
+  chi2 = sum(((n_obs-n_exp)**2)/n_exp)
+  pval = pchisq(chi2,df=2,lower.tail = FALSE)
+  
   # Stockage des metrics dans un df
   res=data.frame(toKeep=TRUE,CR=round(CR,2),FLD=round(FLD,2),
                  HetSO=round(HetSO,2),HomRO=round(HomRO,2),
-                 nClus=nClus,MAF=round(MAF,2),Message=NA)
+                 nClus=nClus,MAF=round(MAF,2),p.HW=format(pval,scientific=TRUE,digits=3),Message=NA)
 
   # Test contre les seuils : si un seuil ne passe pas, toKeep prend la valeur FALSE et on rajoute au message le parametre qui na pas passe le seuil
   if (!is.na(CR)){

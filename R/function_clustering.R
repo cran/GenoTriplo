@@ -1,63 +1,102 @@
+#' Clustering function from file
+#'
+#' Clustering function to run clustering with no parallelization process and autosave
+#' Used by Clustering_from_dir. Shouldn't be used else.
+#'
+#' @param dirname directory of the file to clusterize.
+#' @param filename filename of the data to clusterize
+#' @param ploidy ploidy of individuals
+#' @param n_iter number of iterations to perform for clustering
+#' @param Dmin minimal distance between two clusters
+#' @param new.dir new directory name for saving
+#'
+#' @import dplyr
+#' @import Rmixmod
+#' @importFrom stringr str_extract_all
+#' @importFrom rlang .data
+#'
+#' @export
+#' 
+#' @return Autosave of the results
+#' 
+#' @examples
+#' \dontrun{
+#' dir.create = system.file("extdata/output_create/1", package = "GenoTriplo")
+#' file.create = system.file("extdata/output_create/1","1_1_to_clust.Rdata", package = "GenoTriplo")
+#' ploidy=3
+#' Clustering_from_file(dirname=dir.create,filename=file.create,ploidy=ploidy)
+#' }
+#' 
+
+Clustering_from_file = function(dirname,filename,ploidy,n_iter=5,Dmin=0.28,new.dir=NULL){
+  if (is.null(new.dir)){
+    new.dir=length(list.dirs("./output_clustering",recursive = F))+1
+  }
+  if (length(grep(pattern = "output_clustering",x = new.dir))==0){
+    dir.name.save = paste0("./output_clustering/",new.dir)
+  } else if (length(grep(pattern = "^./",x = new.dir,fixed = F))==0){
+    dir.name.save=paste0("./",new.dir)
+  } else {dir.name.save=new.dir}
+  
+  if (!dir.exists(dir.name.save)){
+    dir.create(path = dir.name.save,recursive = TRUE)
+    cat(paste0("Directory created : ",dir.name.save,"\n"))
+  }
+  path.data_clust = paste0(dirname,"/",filename)
+  tmp = load(path.data_clust) # data_clustering
+  # Permet d'eviter la note 'no visible bunding'
+  data_clustering = eval(parse(text = tmp))
+  new.filename=sub(pattern = "to_clust",replacement = "to_geno",x = filename)
+  res_clust = Clustering(data_clustering=data_clustering,nb_clust_possible=ploidy+1,n_iter=n_iter,Dmin=Dmin)
+  if (file.exists(paste0(dir.name.save,"/",new.filename))){cat(paste0("Attention, le fichier ",paste0(dir.name.save,"/",new.filename),"vient d'etre remplace!\n"))}
+  save(res_clust,data_clustering,file = paste0(dir.name.save,"/",new.filename))
+}
+
 #' Clustering function
 #'
 #' Clustering function to run clustering with no parallelization process nor auto save
 #'
-#' @param dataset dataset with Contrast and SigStren for each individuals (as SampleName) and each markers (as MarkerName)
+#' @param data_clustering dataset with Contrast and SigStren for each individuals (as SampleName) and each markers (as MarkerName)
 #' @param nb_clust_possible number of cluster possible (ploidy+1)
 #' @param n_iter number of iterations to perform for clustering
 #' @param Dmin minimal distance between two clusters
-#' @param SampleName vector with all SampleName (important when missing genotype)
 #'
 #' @import dplyr
 #' @import Rmixmod
 #' @importFrom rlang .data
 #'
 #' @return list of results of clustering
-#'
 #' @export
 #'
 #' @examples
-#' data(GenoTriplo_to_clust)
+#' \dontrun{
+#' file.create = system.file("extdata/output_create/1","1_1_to_clust.Rdata", package = "GenoTriplo")
+#' load(file.create)
 #' ploidy=3
-#' res = Clustering(dataset=GenoTriplo_to_clust,
-#'                  nb_clust_possible=ploidy+1,n_iter=5)
+#' Clustering(data_clustering=data_clustering,nb_clust_possible=ploidy+1)
+#' }
+#' 
 #'
-
-Clustering = function(dataset,nb_clust_possible,n_iter=5,Dmin=0.28,SampleName=NULL){
-  if (is.null(dataset$SampleName) | is.null(dataset$MarkerName) | is.null(dataset$Contrast) | is.null(dataset$SigStren)){
+Clustering=function(data_clustering,nb_clust_possible,n_iter=5,Dmin=0.28){
+  if (is.null(data_clustering$SampleName) | is.null(data_clustering$MarkerName) | is.null(data_clustering$Contrast) | is.null(data_clustering$SigStren)){
     stop("One of SampleName, MarkerName, Contrast or SigStren is missing from dataset.")
-  } else{
-    dataset$Contrast[is.infinite(dataset$Contrast)]=NA
-    dataset$SigStren[is.infinite(dataset$SigStren)]=NA
-    dataset$Contast = round(dataset$Contrast,3)
-    dataset$SigStren = round(dataset$SigStren,3)
   }
-  if (is.null(SampleName)){
-    SampleName = unique(dataset$SampleName)
-  }
-  listM=unique(dataset$MarkerName) # vecteur avec le nom des marqueurs
+  SampleName = unique(data_clustering$SampleName)
+  listM=unique(data_clustering$MarkerName) # vecteur avec le nom des marqueurs
   n_tot=length(listM) # taille du vecteur
   
-  res=list() # creation de la list de sortie de la fonction (le resultat du clustering)
-  res[[n_tot]]=NA # initialisation d'une liste avec le bon nombre d'element (pas utile je crois en fait, mais ?a permet de gagner du temps en general)
-  names(res)=listM # chaque element de la liste prend le nom dun marker
+  res_clust=vector("list", n_tot) # creation de la list de sortie de la fonction (le resultat du clustering)
+  names(res_clust)=listM # chaque element de la liste prend le nom dun marker
   for (k in (1:n_tot)){ # boucle sur lensemble du nombre des marqueurs (1<=k<=n_tot)
     m=listM[k] # le nom du marqueur actuel
-    dta=dataset %>%
-      filter(.data$MarkerName==m) %>% # on ne garde que les lignes du bon marqueur
-      filter(!is.infinite(.data$Contrast) & ! is.na(.data$Contrast)) # Ajout 17.07.2024
+    dta=data_clustering[data_clustering$MarkerName==m & !is.infinite(data_clustering$Contrast) & !is.na(data_clustering$Contrast),]
     if (nrow(dta)==0){
-      partition = Opt@bestResult@partition
-      proba = apply(Opt@bestResult@proba,MARGIN=1,FUN=max)
-      df = data.frame(partition=partition,proba=proba,SampleName=sn) %>%
-        right_join(y=data.frame(SampleName=SampleName),by=c("SampleName"="SampleName")) %>% select(partition,proba)
-      df$proba[is.na(df$partition)]=0
       df = data.frame(partition=rep(NA,length(SampleName)),proba=rep(0,length(SampleName)))
       means = NA
-      res[[k]] = list(df=df,means=means) # on stock le resultat
+      res_clust[[k]] = list(df=df,means=means) # on stock le resultat
     } else {
       sn = unique(dta$SampleName)
-      dta = dta %>% ungroup() %>% select(c("Contrast","SigStren")) # on ne garde que les deux colonnes qui nous interessent
+      dta = dta[,c("Contrast","SigStren")] # on ne garde que les deux colonnes qui nous interessent
       clust_opt = min(2*nb_clust_possible,nrow(dta)) # on copie le nombre de cluster possible dans un nouvel objet et on sassure quil y a assez dinvididu
       mixmodICL=MixmodBoucle(dta=dta,nb_clust_opt = clust_opt,iter=n_iter) # lancement de la fonction de clustering
       while (clust_opt>1 & mixmodICL@error){  # on refait tourner des modeles si il y a eu que des erreurs mais on diminue le nombre d'iterations (n-2) et le nombre de cluster possible
@@ -65,22 +104,21 @@ Clustering = function(dataset,nb_clust_possible,n_iter=5,Dmin=0.28,SampleName=NU
         mixmodICL=MixmodBoucle(dta=dta,nb_clust_opt = clust_opt,iter=max(1,n_iter-2)) # on relance
       }
       if (mixmodICL@error){
-        res[[k]]='Error'
+        res_clust[[k]]='Error'
       } else { # Si algorithme de clustering a reussi
         Opt=OptimizeCluster(mixmodICL = mixmodICL,nbClustMax = nb_clust_possible,distmin = Dmin) # on lance l'optimisation
-        partition = Opt@bestResult@partition
-        proba = apply(Opt@bestResult@proba,MARGIN=1,FUN=max)
+        partition = Opt[[1]]
+        proba = apply(Opt[[2]],MARGIN=1,FUN=max)
         df = data.frame(partition=partition,proba=proba,SampleName=sn)
         df = left_join(data.frame(SampleName=SampleName),df,by=c("SampleName"="SampleName")) %>% select(partition,proba)
         df$proba[is.na(df$partition)]=0
-        means = Opt@bestResult@parameters@mean[,1]
-        res[[k]] = list(df=df,means=means) # on stock le resultat
+        means = Opt[[3]]
+        res_clust[[k]] = list(df=df,means=means) # on stock le resultat
       }
     }
   }
-  return(res)
+  return(res_clust)
 }
-
 
 #' Loop of clustering
 #'
@@ -113,10 +151,6 @@ MixmodBoucle = function(dta,nb_clust_opt,iter=5){
   return(mod) # on retourne le model qui maximise la likelihood (vraissemblance)
 }
 
-# fonction OptimizeCluster : permet de rassembler les clusters qui sont trop proches pour etre deux genotypes differents
-# mixmodICL : le meilleur resultat du clustering
-# nbClustMax : ploidy+1, le nombre de cluster max attendu
-# distmin : la distance minimale entre 2 clusters (unite presque arbitraire)
 #' Optimize the clustering algorithm
 #'
 #' @param mixmodICL the best model
@@ -124,7 +158,7 @@ MixmodBoucle = function(dta,nb_clust_opt,iter=5){
 #' @param distmin minimal distance between two cluster
 #'
 #' @import Rmixmod
-#'
+#' @importFrom stats weighted.mean
 #' @return the optimized model
 #'
 #' @keywords internal
@@ -134,33 +168,28 @@ OptimizeCluster = function(mixmodICL,nbClustMax,distmin=0.28){
   TropProche=TRUE # on part du postulat qu'il y a des clusters trop proche (puisquon en demande plus que le nombre de genotype maximum)
   nbClust=mixmodICL@bestResult@nbCluster # on stock le nombre de cluster du modele
   # Verification que chaque cluster contient au moins un individu
-  gp_non_vide = unique(mixmodICL@bestResult@partition)
+  means = mixmodICL@bestResult@parameters@mean[,1]
+  proba = mixmodICL@bestResult@proba
+  partition = mixmodICL@bestResult@partition
+  gp_non_vide = unique(partition)
   if (nbClust != length(gp_non_vide)){
     gp_vide = c(1:nbClust)[which(!1:nbClust %in% gp_non_vide)] # deja dans ordre croissant
     i = 0 # indice_a_rajouter au fur et a mesure de la boucle for (si on supprime gp 2, le 5e gp devient en fait le 4e)
     for (gp_suppr in gp_vide){
       nbClust = nbClust-1
       
-      mixmodICL@bestResult@parameters@mean = matrix(mixmodICL@bestResult@parameters@mean[-(gp_suppr-i),],nrow=nbClust,ncol=2)
-      # mixmodICL@bestResult@parameters@variance=mixmodICL@bestResult@parameters@variance[-(gp_suppr-i)]
-      # mixmodICL@bestResult@parameters@proportions=mixmodICL@bestResult@parameters@proportions[-(gp_suppr-i)]
-      mixmodICL@bestResult@proba=matrix(mixmodICL@bestResult@proba[,-(gp_suppr-i)],nrow=nrow(mixmodICL@bestResult@proba),ncol=nbClust)
+      means = means[-(gp_suppr-i)]
+      proba=matrix(proba[,-(gp_suppr-i)],nrow=nrow(proba),ncol=nbClust)
       
-      tmp=mixmodICL@bestResult@partition
+      tmp=partition
       tmp[tmp>(gp_suppr-i)]=tmp[tmp>(gp_suppr-i)]-1
-      mixmodICL@bestResult@partition=as.integer(tmp)
-      
-      # mixmodICL@results[[1]]@nbCluster=mixmodICL@bestResult@nbCluster
-      # mixmodICL@results[[1]]@parameters=mixmodICL@bestResult@parameters
-      # mixmodICL@results[[1]]@proba=mixmodICL@bestResult@proba
-      # mixmodICL@results[[1]]@partition=as.integer(mixmodICL@bestResult@partition)
+      partition=as.integer(tmp)
       
       i = i+1
     }
-    
   }
   while(TropProche & nbClust>1){
-    M=mixmodICL@bestResult@parameters@mean[,1]
+    M=means
     ord = order(M)
     sor = sort(M)
     dis = c()
@@ -171,7 +200,7 @@ OptimizeCluster = function(mixmodICL,nbClustMax,distmin=0.28){
       dis=c(dis,d)
       mdis=c(mdis,(sor[k+1]+sor[k])/2)
     }
-    coef=ifelse(test = mdis<0,-mdis+1,mdis+1) # ce coefficient permet de tenir compte du fait quavec le contrast, le milieu est plus resserre et a linvese les bords sont plus etires
+    coef=1+abs(mdis) # ifelse(test = mdis<0,-mdis+1,mdis+1) # ce coefficient permet de tenir compte du fait quavec le contrast, le milieu est plus resserre et a linvese les bords sont plus etires
     threshold = coef*distmin
     
     isProxy = dis-threshold
@@ -187,47 +216,24 @@ OptimizeCluster = function(mixmodICL,nbClustMax,distmin=0.28){
         clustproche.min=b
         clustproche.max=a
       }
-      # Change nb de cluster
-      mixmodICL@bestResult@nbCluster=nbClust
-      mixmodICL@nbCluster=nbClust
       # Change la valeur de la moyenne du groupe fusionne (ContrastCCS) : pondere par la taille des groupes qui fusionnes
-      mixmodICL@bestResult@parameters@mean[clustproche.min,1] = mean(c(rep(mixmodICL@bestResult@parameters@mean[clustproche.min,1],length(mixmodICL@bestResult@partition[mixmodICL@bestResult@partition==clustproche.min])),
-                                                                       rep(mixmodICL@bestResult@parameters@mean[clustproche.max,1],length(mixmodICL@bestResult@partition[mixmodICL@bestResult@partition==clustproche.max]))))
-      # Change la valeur de la moyenne du gp fusionne (SigStren) : pondere par la taille des groupes qui fusionnes
-      # mixmodICL@bestResult@parameters@mean[clustproche.min,2] = mean(c(rep(mixmodICL@bestResult@parameters@mean[clustproche.min,2],length(mixmodICL@bestResult@partition[mixmodICL@bestResult@partition==clustproche.min])),
-      #                                                                  rep(mixmodICL@bestResult@parameters@mean[clustproche.max,2],length(mixmodICL@bestResult@partition[mixmodICL@bestResult@partition==clustproche.max]))))
+      means[clustproche.min] = weighted.mean(x = means[c(clustproche.min,clustproche.max)],
+                                             w = c(length(partition[partition==clustproche.min]),
+                                                   length(partition[partition==clustproche.max])))
       # Retire la ligne de l'ancien groupe dans les mean
-      mixmodICL@bestResult@parameters@mean = matrix(mixmodICL@bestResult@parameters@mean[-clustproche.max,],nrow=nbClust,ncol=2)
-      # Change les valeurs des ecart-types (addition des sigmas pour mieux correspondre)
-      # mixmodICL@bestResult@parameters@variance[[clustproche.min]]=mixmodICL@bestResult@parameters@variance[[clustproche.min]]+
-      #   mixmodICL@bestResult@parameters@variance[[clustproche.max]]
-      # # Enleve les valeurs decart-types du groupe supprime
-      # mixmodICL@bestResult@parameters@variance=mixmodICL@bestResult@parameters@variance[-clustproche.max]
+      means = means[-clustproche.max]
       # Change la repartition des individus (on regroupe les deux plus proches & on diminue de 1 le numero de groupe des gp superieur)
-      tmp=mixmodICL@bestResult@partition
+      tmp=partition
       tmp[tmp==clustproche.max]=clustproche.min
       tmp[tmp>clustproche.max]=tmp[tmp>clustproche.max]-1
-      mixmodICL@bestResult@partition=as.integer(tmp)
-      # # Met a jour les proportions dans les groupe
-      # mixmodICL@bestResult@parameters@proportions[clustproche.min] = mixmodICL@bestResult@parameters@proportions[clustproche.min]+
-      #   mixmodICL@bestResult@parameters@proportions[clustproche.max]
-      # # Supprime le groupe qui nexiste plus
-      # mixmodICL@bestResult@parameters@proportions=mixmodICL@bestResult@parameters@proportions[-clustproche.max]
+      partition=as.integer(tmp)
       # Met a jour des proba dappartenance a un groupe
-      mixmodICL@bestResult@proba[,clustproche.min] = mixmodICL@bestResult@proba[,clustproche.min]+mixmodICL@bestResult@proba[,clustproche.max]
+      proba[,clustproche.min] = proba[,clustproche.min]+proba[,clustproche.max]
       # Supprime la colonne correspondant au groupe supprime
-      mixmodICL@bestResult@proba=matrix(mixmodICL@bestResult@proba[,-clustproche.max],nrow=nrow(mixmodICL@bestResult@proba),ncol=nbClust)
-      
-      # # Fait pareil avec result
-      # mixmodICL@results[[1]]@nbCluster=mixmodICL@bestResult@nbCluster
-      # mixmodICL@results[[1]]@parameters=mixmodICL@bestResult@parameters
-      # mixmodICL@results[[1]]@proba=mixmodICL@bestResult@proba
-      # mixmodICL@results[[1]]@partition=as.integer(mixmodICL@bestResult@partition)
-      
-      
+      proba=matrix(proba[,-clustproche.max],nrow=nrow(proba),ncol=nbClust)
     } else {
       TropProche=FALSE
     }
   }
-  return(mixmodICL)
+  return(list(partition,proba,means))
 }

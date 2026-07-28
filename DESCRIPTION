@@ -1,7 +1,8 @@
 Package: GenoTriplo
 Type: Package
-Title: Genotyping Triploids (or Diploids) from Luminescence Data
-Version: 1.1.3
+Title: Genotyping Triploids/Tetraploids (or Diploids) from Luminescence
+        Data
+Version: 2.2.1
 Authors@R: 
   c(person(given = "Julien",
            family = "Roche",
@@ -25,18 +26,17 @@ Authors@R:
     person(given = "Pierrick",
            family = "Haffray",
            role = "aut"))
-Description: Genotyping of triploid individuals from luminescence data (marker probeset A and B). Works also for diploids.
-	Two main functions: Run_Clustering() that regroups individuals with a same genotype based on proximity and
-	Run_Genotyping() that assigns a genotype to each cluster. For Shiny interface use: launch_GenoShiny().
+Description: Genotyping of triploid individuals from luminescence data (marker probeset A and B). Works also for diploids and tetraploids.
+	Three main functions: Create_Dataset_from_file() to build dataset ; Clustering_parallele_from_dir() that regroups individuals with a same genotype based on proximity and
+	Genotyping_parallele_from_dir() that assigns a genotype to each cluster. For Shiny interface use: launch_GenoShiny().
 License: GPL
 Encoding: UTF-8
-LazyData: true
-RoxygenNote: 7.3.2
 Imports: cowplot, doParallel, dplyr, DT, foreach, ggplot2, htmltools,
-        parallel, processx, rlang, Rmixmod, shiny, shinythemes, tidyr
+        parallel, processx, rlang, Rmixmod, shiny, shinythemes,
+        data.table, shinyFiles, bslib, stringr
 Depends: R (>= 3.5.0), shinyBS
 NeedsCompilation: no
-Packaged: 2025-03-25 10:14:48 UTC; Proprietaire
+Packaged: 2026-07-28 14:11:27 UTC; Proprietaire
 Author: Julien Roche [aut, cre],
   Florence Phocas [aut],
   Mathieu Besson [aut],
@@ -45,5 +45,6 @@ Author: Julien Roche [aut, cre],
   François Allal [aut],
   Pierrick Haffray [aut]
 Maintainer: Julien Roche <julien.roche@inrae.fr>
+Config/roxygen2/version: 8.0.0
 Repository: CRAN
-Date/Publication: 2025-03-25 16:40:02 UTC
+Date/Publication: 2026-07-28 14:50:02 UTC
