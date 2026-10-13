@@ -22,7 +22,7 @@ Create_Dataset_from_file(
 
 \item{marker_name}{vector with name of marker to keep}
 
-\item{n_marker_chunk}{nombre de lignes par chunk (nombre pair car chaque marker est par pair de ligne)}
+\item{n_marker_chunk}{number of lines by chunk (have to be even as markers goes by pair)}
 
 \item{simplify.names}{Samplenames might be like so : IndivXX_a1_a1.CEL (if from Axiom) -> allows to select only IndivXX as SampleName}
 }

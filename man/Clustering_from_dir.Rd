@@ -6,22 +6,22 @@
 \usage{
 Clustering_from_dir(
   dir_from_create,
+  new.dir = NULL,
   ploidy,
   n_iter = 5,
-  Dmin = 0.28,
-  new.dir = NULL
+  Dmin = 0.28
 )
 }
 \arguments{
 \item{dir_from_create}{directory of the file to clusterize.}
+
+\item{new.dir}{new directory name for saving in './output_clustering'}
 
 \item{ploidy}{ploidy of individuals}
 
 \item{n_iter}{number of iterations to perform for clustering}
 
 \item{Dmin}{minimal distance between two clusters}
-
-\item{new.dir}{new directory name for saving in './output_clustering'}
 }
 \value{
 Autosave of the results in new.dir

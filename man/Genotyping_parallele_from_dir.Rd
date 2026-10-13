@@ -8,7 +8,7 @@ Genotyping_parallele_from_dir(
   dir_from_clustering,
   new.dir = NULL,
   ploidy,
-  SeuilNoCall = 0.85,
+  SeuilNoCall = 0,
   SeuilNbSD = 2.8,
   SeuilSD = 0.28,
   n_core = 1,

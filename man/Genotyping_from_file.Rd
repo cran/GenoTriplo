@@ -9,7 +9,7 @@ Genotyping_from_file(
   filename,
   new.dir = NULL,
   ploidy,
-  SeuilNoCall = 0.85,
+  SeuilNoCall = 0,
   SeuilNbSD = 2.8,
   SeuilSD = 0.28,
   cr_marker = 0.97,

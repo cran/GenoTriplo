@@ -77,9 +77,9 @@ Clustering_parallele_from_dir = function(dir_from_create,new.dir=NULL,ploidy,n_i
 #'
 #' @param dir_from_create directory of the file to clusterize.
 #' @param ploidy ploidy of individuals
+#' @param new.dir new directory name for saving in './output_clustering'
 #' @param n_iter number of iterations to perform for clustering
 #' @param Dmin minimal distance between two clusters
-#' @param new.dir new directory name for saving in './output_clustering'
 #'
 #' @import Rmixmod
 #' @importFrom rlang .data
@@ -95,7 +95,7 @@ Clustering_parallele_from_dir = function(dir_from_create,new.dir=NULL,ploidy,n_i
 #' Clustering_from_dir(dir_from_create=dir.create,ploidy=ploidy)
 #' }
 
-Clustering_from_dir = function(dir_from_create,ploidy,n_iter=5,Dmin=0.28,new.dir=NULL){
+Clustering_from_dir = function(dir_from_create,new.dir=NULL,ploidy,n_iter=5,Dmin=0.28){
   if (!dir.exists("./output_clustering")){
     dir.create("./output_clustering")
     cat(paste0("Directory created : ","./output_clustering","\n"))
@@ -113,6 +113,7 @@ Clustering_from_dir = function(dir_from_create,ploidy,n_iter=5,Dmin=0.28,new.dir
     cat(paste0("Directory created : ",new.dir.tot,"\n"))
   }
   all.files=list.files(dir_from_create)
+  t0 = Sys.time()
   for (f in all.files){
     cat(paste0("Clustering from file : ",dir_from_create,"/",f," ...\n"))
     Clustering_from_file(dirname=dir_from_create,
@@ -120,4 +121,7 @@ Clustering_from_dir = function(dir_from_create,ploidy,n_iter=5,Dmin=0.28,new.dir
                          ploidy=ploidy,n_iter=n_iter,Dmin=Dmin,
                          new.dir=new.dir.tot)
   }
+  t1=Sys.time()
+  delay = t1-t0
+  cat(paste0("Total clustering time : ",round(delay,3),units(delay),"\n"))
 }

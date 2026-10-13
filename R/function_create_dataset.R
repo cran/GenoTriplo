@@ -6,7 +6,7 @@
 #' @param dir.name saving name (the number of the chunk and _to_clust is automatically added)
 #' @param indiv_name vector with name of individuals to keep
 #' @param marker_name vector with name of marker to keep
-#' @param n_marker_chunk nombre de lignes par chunk (nombre pair car chaque marker est par pair de ligne)
+#' @param n_marker_chunk number of lines by chunk (have to be even as markers goes by pair)
 #' @param simplify.names Samplenames might be like so : IndivXX_a1_a1.CEL (if from Axiom) -> allows to select only IndivXX as SampleName
 #' 
 #' @import dplyr

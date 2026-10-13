@@ -36,7 +36,7 @@
 #' 
 Genotyping_parallele_from_dir = function(dir_from_clustering,new.dir=NULL,
                                          ploidy,
-                                         SeuilNoCall=0.85,SeuilNbSD=2.8,SeuilSD=0.28,
+                                         SeuilNoCall=0,SeuilNbSD=2.8,SeuilSD=0.28,
                                          n_core=1,
                                          corres_ATCG=NULL,
                                          same.pop=TRUE,cr_marker=0.97,fld_marker=3.4,
@@ -120,7 +120,7 @@ Genotyping_parallele_from_dir = function(dir_from_clustering,new.dir=NULL,
 #' }
 Genotyping_from_file = function(dirname,filename,new.dir=NULL,
                                 ploidy,
-                                SeuilNoCall=0.85,SeuilNbSD=2.8,SeuilSD=0.28,
+                                SeuilNoCall=0,SeuilNbSD=2.8,SeuilSD=0.28,
                                 cr_marker=0.97,fld_marker=3.4,hetso_marker=-0.3,
                                 same.pop=TRUE,tryEqHW=TRUE){
   if (is.null(new.dir)){

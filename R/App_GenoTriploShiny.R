@@ -105,7 +105,7 @@ launch_GenoShiny = function(){
                                                          sliderInput(inputId = "SeuilNoCall",
                                                                      label = div("No Call threshold (individual)",
                                                                                  bsButton(inputId = "q13",label = "",icon = icon("question"), style = "info", size = "extra-small")),
-                                                                     min = 0,max = 1,value = 0.85,step = 0.01),
+                                                                     min = 0,max = 1,value = 0,step = 0.01),
                                                          sliderInput(inputId = "SeuilNbSD",
                                                                      label = div("Distance from cluster s center",
                                                                                  bsButton(inputId = "q14",label = "",icon = icon("question"), style = "info", size = "extra-small")),
@@ -189,7 +189,7 @@ launch_GenoShiny = function(){
                                                                    accept = ".txt"),
                                                          uiOutput(outputId = "which_plate"),
                                                          textInput(inputId = "save_name4",
-                                                                   label = div("Name of the plot to save for clustering",
+                                                                   label = div("Name of the plot to save",
                                                                                bsButton(inputId = "q29",label = "",icon = icon("question"), style = "info", size = "extra-small"))),
                                                          actionButton(inputId = "SavePlot",label = "Save plot"))
                                         
@@ -380,7 +380,7 @@ launch_GenoShiny = function(){
     
     output$which_indiv = renderUI({
       if (!is.null(input$select_indiv$datapath)){
-        data$indiv = read.delim(file = input$select_indiv$datapath,header=FALSE,sep = "\t")
+        # data$indiv = read.delim(file = input$select_indiv$datapath,header=FALSE,sep = "\t")
         selectInput(inputId = "which_indiv_select",
                     label = div("Choose the individuals to visualize",
                                 tipify(el = bsButton(inputId = "3",label = "",icon = icon("question"), style = "info", size = "extra-small"),
@@ -458,9 +458,11 @@ launch_GenoShiny = function(){
                 data$data_plot=data.frame(Contrast=data$raw_marker$Contrast[data$raw_marker$SampleName %in% indiv_in_plate],
                                           SigStren=data$raw_marker$SigStren[data$raw_marker$SampleName %in% indiv_in_plate],
                                           fill=as.factor(as.numeric(data$geno[input$marker_name,ind])),
-                                          alpha=factor(data$valid[input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),
-                                          col_pch=factor(x = 1,levels = c(1,2)),
+                                          # alpha=factor(data$valid[input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),
+                                          # col_pch=factor(x = 1,levels = c(1,2)),
                                           SampleName=data$raw_marker$SampleName[data$raw_marker$SampleName %in% indiv_in_plate])
+                alpha = rep(factor(data$valid[data$valid$MarkerName==input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),length(data$raw_marker$SampleName[data$raw_marker$SampleName %in% indiv_in_plate]))
+                col_pch = rep(factor(x = 1,levels = c(1,2)),length(data$raw_marker$SampleName[data$raw_marker$SampleName %in% indiv_in_plate]))
               } else {
                 do_plot=FALSE
               }
@@ -468,24 +470,30 @@ launch_GenoShiny = function(){
               data$data_plot=data.frame(Contrast=data$raw_marker$Contrast,
                                         SigStren=data$raw_marker$SigStren,
                                         fill=as.factor(as.numeric(data$geno[input$marker_name,])),
-                                        alpha=factor(data$valid[input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),
-                                        col_pch=factor(x = 1,levels = c(1,2)),
+                                        # alpha=factor(data$valid[input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),
+                                        # col_pch=factor(x = 1,levels = c(1,2)),
                                         SampleName=data$raw_marker$SampleName)
+              alpha=rep(factor(data$valid[data$valid$MarkerName==input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),length(data$raw_marker$SampleName))
+              col_pch = rep(factor(x = 1,levels = c(1,2)),length(data$raw_marker$SampleName))
             }
           } else {
             data$data_plot=data.frame(Contrast=data$raw_marker$Contrast,
                                       SigStren=data$raw_marker$SigStren,
                                       fill=as.factor(as.numeric(data$geno[input$marker_name,])),
-                                      alpha=factor(data$valid[input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),
-                                      col_pch=factor(x = 1,levels = c(1,2)),
+                                      # alpha=factor(data$valid[input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),
+                                      # col_pch=factor(x = 1,levels = c(1,2)),
                                       SampleName=data$raw_marker$SampleName)
+            alpha=rep(factor(data$valid[data$valid$MarkerName==input$marker_name,"toKeep"],levels=c("TRUE","FALSE","Selected")),length(data$raw_marker$SampleName))
+            col_pch = rep(factor(x = 1,levels = c(1,2)),length(data$raw_marker$SampleName))
           }
           if (!is.null(input$which_indiv_select)){
             if (input$which_indiv_select=='Selected'){
               selected_indiv = read.delim(file = input$select_indiv$datapath,header = FALSE,sep="\t")
-              names(selected_indiv)="Indiv"
-              data$data_plot$col_pch[data$data_plot$SampleName %in% selected_indiv$Indiv]=2
-              data$data_plot$alpha[data$data_plot$SampleName %in% selected_indiv$Indiv]="Selected"
+              colnames(selected_indiv)="Indiv"
+              # data$data_plot$alpha[data$data_plot$SampleName %in% selected_indiv$Indiv]="Selected"
+              # data$data_plot$col_pch[data$data_plot$SampleName %in% selected_indiv$Indiv]=2
+              alpha[data$data_plot$SampleName %in% selected_indiv$Indiv]="Selected"
+              col_pch[data$data_plot$SampleName %in% selected_indiv$Indiv] = 2
               alpha_manual = c("TRUE"=0.1,"FALSE"=0.1,"Selected"=1)
             }
           }
@@ -496,10 +504,11 @@ launch_GenoShiny = function(){
           } else if (max(data$valid$nClus,na.rm=T)==5){
             fill_manual=c("-1"="grey50","0"="red","1"="orange","2"="purple","3"="#15D409","4"="blue")
           } else {
-            message("Fonctionne avec diplo et triplo ; pas au dessus pour l'instant !")
+            message("Fonctionne avec diplo, triplo et tetra ; pas au dessus pour l'instant !")
           }
           if (do_plot){
-            data$plot=ggplot(data=data$data_plot,aes(x=.data$Contrast,y=.data$SigStren,fill=.data$fill,shape=.data$col_pch,alpha=.data$alpha,col=.data$col_pch))+
+            tmp_dta_plot = cbind(data$data_plot,data.frame(alpha=alpha,col_pch=col_pch))
+            data$plot=ggplot(data=tmp_dta_plot,aes(x=.data$Contrast,y=.data$SigStren,fill=.data$fill,shape=.data$col_pch,alpha=.data$alpha,col=.data$col_pch))+
               geom_point(pch=21,cex=3)+
               scale_fill_manual(values = fill_manual)+
               scale_alpha_manual(values = alpha_manual)+
